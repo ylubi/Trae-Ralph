@@ -1,6 +1,6 @@
 {
   "name": "trae-ralph",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "通过 Chrome DevTools Protocol 为 Trae IDE 实现自动化持续工作（Ralph Loop）",
   "main": "src/launcher.js",
   "bin": {
@@ -14,17 +14,23 @@
     "start:cn": "node src/launcher.js --version china",
     "inject": "node src/injector.js",
     "inject:cn": "node src/injector.js --version china",
-    "build": "pkg bin/cli.js -t node16-win-x64,node16-macos-x64,node16-linux-x64 -o dist/trae-ralph"
+    "build": "pkg bin/cli.js -t node16-win-x64,node16-macos-x64,node16-linux-x64 -o dist/trae-ralph",
+    "prepublishOnly": "echo 'Ready to publish to npm'"
   },
   "keywords": [
     "trae",
+    "trae-ide",
     "ralph-loop",
     "cdp",
+    "chrome-devtools-protocol",
     "automation",
     "ai",
-    "continuous"
+    "ai-assistant",
+    "continuous",
+    "cli",
+    "developer-tools"
   ],
-  "author": "",
+  "author": "ylubi <yhuiche@gmail.com>",
   "license": "MIT",
   "dependencies": {
     "chrome-remote-interface": "^0.32.2"
@@ -42,5 +48,15 @@
   "bugs": {
     "url": "https://github.com/your-username/trae-ralph/issues"
   },
-  "homepage": "https://github.com/your-username/trae-ralph#readme"
+  "homepage": "https://github.com/your-username/trae-ralph#readme",
+  "files": [
+    "bin/",
+    "src/",
+    "scenarios/",
+    "config/",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "preferGlobal": true
 }

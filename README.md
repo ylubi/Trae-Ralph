@@ -4,6 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D14.0.0-brightgreen)](https://nodejs.org/)
+[![npm version](https://img.shields.io/npm/v/trae-ralph.svg)](https://www.npmjs.com/package/trae-ralph)
 
 ## 特点
 
@@ -12,10 +13,26 @@
 - ✅ 多版本支持 - 支持国际版和国内版
 - ✅ 场景检测 - 智能识别多种中断场景
 - ✅ 易于扩展 - 支持自定义场景
+- ✅ 全局命令 - 安装后可在任何位置使用
 
 ## 快速开始
 
 ### 安装
+
+**全局安装（推荐）：**
+
+```bash
+npm install -g trae-ralph
+```
+
+安装后可以直接使用命令：
+
+```bash
+trae-ralph config
+trae-ralph start
+```
+
+**本地开发安装：**
 
 ```bash
 git clone https://github.com/your-username/trae-ralph.git
@@ -25,23 +42,39 @@ npm install
 
 ### 配置
 
+**首次使用需要配置 Trae 路径：**
+
+```bash
+# 全局安装后
+trae-ralph config
+
+# 本地开发
+npm run config
+```
+
 **快速配置（推荐）：**
 
 ```bash
 # 配置国际版
-npm run config -- --trae-path "D:\Program Files\Trae\Trae.exe"
+trae-ralph config --trae-path "D:\Program Files\Trae\Trae.exe"
 
 # 配置国内版
-npm run config -- --cn --trae-path "D:\Program Files\Trae CN\Trae CN.exe"
-```
-
-**交互式配置：**
-
-```bash
-npm run config
+trae-ralph config --cn --trae-path "D:\Program Files\Trae CN\Trae CN.exe"
 ```
 
 ### 启动
+
+**全局安装后：**
+
+```bash
+# 启动国际版（默认）
+trae-ralph start
+
+# 启动国内版
+trae-ralph start --cn
+```
+
+**本地开发：**
 
 ```bash
 # 启动国际版（默认）
