@@ -1,6 +1,6 @@
 {
   "name": "trae-ralph",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "description": "通过 Chrome DevTools Protocol 为 Trae IDE 实现自动化持续工作（Ralph Loop）",
   "main": "src/launcher.js",
   "bin": {
@@ -52,8 +52,8 @@
   "files": [
     "bin/",
     "src/",
-    "scenarios/",
     "config/",
+    ".trae-templates/",
     "README.md",
     "LICENSE",
     "CHANGELOG.md"

@@ -119,8 +119,8 @@
 - ⏳ needs-confirmation.js
 - ⏳ long-thinking.js
 
-### config/
-- ⏳ selectors.js
+### src/editor-api/
+- ✅ selectors.js
 
 ### bin/
 - ✅ cli.js

@@ -171,6 +171,7 @@ async function startTrae() {
     
     // 更新全局配置
     CONFIG.port = traeConfig.port;
+    CONFIG.traePath = traeConfig.path;
     CONFIG.checkInterval = traeConfig.checkInterval;
     CONFIG.stableCount = traeConfig.stableCount;
     CONFIG.startupDelay = traeConfig.startupDelay;
@@ -210,7 +211,7 @@ async function startTrae() {
 }
 
 async function injectScript() {
-    const maxRetries = 3;
+    const maxRetries = 10;
     let retryCount = 0;
     
     while (retryCount < maxRetries) {
@@ -241,12 +242,12 @@ async function injectScript() {
             let script = fs.readFileSync(CONFIG.scriptPath, 'utf8');
             
             // 加载场景配置
-            const scenarioLoader = require(path.join(__dirname, '../scenarios/loader.js'));
+            const scenarioLoader = require(path.join(__dirname, 'scenarios/loader.js'));
             const scenariosConfig = scenarioLoader.generateBrowserConfig();
             
             // 加载选择器定义
             const selectorsScript = fs.readFileSync(
-                path.join(__dirname, '../config/selectors.js'), 
+                path.join(__dirname, 'editor-api/selectors.js'), 
                 'utf8'
             );
             
@@ -258,8 +259,8 @@ async function injectScript() {
                 'stableCount: 3',
                 `stableCount: ${CONFIG.stableCount}`
             ).replace(
-                'const SCENARIOS = {',
-                `const SCENARIOS = ${JSON.stringify(scenariosConfig, null, 2).replace(/^/gm, '  ').trim()};\n  const SCENARIOS_BACKUP = {`
+                'const SCENARIOS_PLACEHOLDER = null;',
+                `const SCENARIOS_PLACEHOLDER = ${JSON.stringify(scenariosConfig, null, 2).replace(/^/gm, '  ').trim()};`
             ).replace(
                 'const SELECTORS_PLACEHOLDER = null;',
                 `const SELECTORS_PLACEHOLDER = ${JSON.stringify(selectorsScript)};`
@@ -302,7 +303,7 @@ async function injectScript() {
                 log('🎉 Trae Ralph Loop 已启动', 'cyan');
                 log('');
                 log('💡 提示：', 'yellow');
-                log('  - 脚本会自动检测 AI 状态');
+                log('  - 脚本会自动检测 Ralph 状态');
                 log('  - AI 停止时自动发送"继续"');
                 log('  - 在 Trae DevTools Console 可以看到日志');
                 log('');
@@ -328,9 +329,11 @@ async function injectScript() {
                 log('  2. 尝试增加 startupDelay：');
                 log('     编辑 ~/.trae-ralph/config.json，将 startupDelay 改为 10000');
                 log('  3. 检查端口是否被占用：');
-                log(`     netstat -ano | findstr :${config.port}`);
-                log('  4. 手动启动 Trae 并测试：');
-                log('     "D:\\Program Files (x86)\\trae\\Trae\\Trae.exe" --remote-debugging-port=9222');
+                log(`     netstat -ano | findstr :${CONFIG.port}`);
+                log('  4. 手动启动 Trae 并测试 (独立环境模式 - 推荐):');
+                log('     ⚠️ 这将启动一个新的 Trae 实例，不会与当前窗口冲突');
+                const userDataDir = path.join(process.cwd(), 'temp', 'trae-profile');
+                log(`     & "${CONFIG.traePath}" --remote-debugging-port=${CONFIG.port} --user-data-dir="${userDataDir}"`);
                 log('     然后运行: node injector.js');
                 log('');
                 process.exit(1);

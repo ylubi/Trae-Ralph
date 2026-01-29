@@ -80,7 +80,7 @@
       "enabled": true,
       "priority": 4,
       "checkDuration": true,
-      "thinkingTime": 30000,
+      "thinkingTime": 300000,
       "action": "continue",
       "message": "继续"
     }

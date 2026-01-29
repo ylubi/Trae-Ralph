@@ -407,22 +407,22 @@ A: 选择器数组中的顺序就是优先级，第一个匹配的选择器会�
 
 ## 示例场景
 
-### 示例 1：检测 AI 状态
+### 示例 1：检测 Ralph 状态
 
 ```javascript
 function checkAIStatus() {
   if ($trae.status.loading) {
-    console.log('🔄 AI 正在工作');
+    console.log('🔄 Ralph 正在工作');
     return 'working';
   }
   
   const input = $trae.chat.input;
   if (input && input.disabled) {
-    console.log('⏸️ AI 已暂停');
+    console.log('⏸️ Ralph 已暂停');
     return 'paused';
   }
   
-  console.log('✅ AI 空闲');
+  console.log('✅ Ralph 空闲');
   return 'idle';
 }
 ```

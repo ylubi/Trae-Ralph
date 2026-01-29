@@ -138,7 +138,7 @@ const SCENARIOS = {
     priority: 4,
     // 检测 AI 停止但没有明确消息
     checkDuration: true,
-    thinkingTime: 30000, // 30 秒
+    thinkingTime: 300000, // 300 秒 (5分钟)
     action: 'continue',
     message: '继续'
   },

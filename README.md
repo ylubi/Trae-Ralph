@@ -96,6 +96,29 @@ npm run start:cn
 | `npm run inject` | 注入到已运行的国际版 |
 | `npm run inject:cn` | 注入到已运行的国内版 |
 | `npm run scenarios` | 管理场景 |
+| `trae-ralph setup-trae` | 部署 Ralph 模板到当前项目 |
+
+## Ralph 模板系统
+
+模板位于 `.trae-templates/`，可部署到任意项目的 `.trae/` 目录：
+
+```bash
+# 部署到当前项目
+trae-ralph setup-trae
+
+# 部署到指定目录
+trae-ralph setup-trae --path /path/to/project
+
+# 选择性部署
+trae-ralph setup-trae --rules 01-ralph-core-concepts,02-architecture-patterns
+trae-ralph setup-trae --skills scenario-detection,error-recovery
+
+# 增量更新（保留用户自定义文件）
+trae-ralph setup-trae --update
+
+# 仅验证模板一致性
+trae-ralph setup-trae --validate-only
+```
 
 ## 工作原理
 
@@ -151,6 +174,7 @@ npm run scenarios
 - [场景系统](docs/SCENARIOS-GUIDE.md) - 场景检测和管理
 - [元素选择器](docs/SELECTORS.md) - DOM 元素定位
 - [更新日志](CHANGELOG.md) - 版本更新记录
+- [模板系统](.trae-templates/README.md) - Ralph 模板总览与导航
 
 ## 故障排除
 

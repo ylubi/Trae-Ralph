@@ -65,6 +65,10 @@ switch (command) {
     runScript('injector.js', args.slice(1));
     break;
   
+  case 'setup-trae':
+    runScript('setup-trae.js', args.slice(1));
+    break;
+  
   case 'start':
   case undefined:
     // 默认命令：启动
@@ -125,6 +129,7 @@ ${packageJson.description}
   scenarios           管理场景（查看、创建、编辑、删除、测试）
   start               启动 Trae Ralph Loop（默认命令）
   inject              注入模式（向已运行的 Trae 注入脚本）
+  setup-trae          设置 Trae Rules 和 Skills 到项目
 
 \x1b[33m选项：\x1b[0m
   --version, -v       显示版本号
@@ -138,6 +143,8 @@ ${packageJson.description}
   trae-ralph start               # 启动国际版
   trae-ralph start --cn          # 启动国内版
   trae-ralph inject              # 注入模式
+  trae-ralph setup-trae          # 设置 Trae 配置到当前目录
+  trae-ralph setup-trae --path /path/to/project  # 设置到指定目录
 
 \x1b[33m首次使用：\x1b[0m
   1. 运行 \x1b[32mtrae-ralph config\x1b[0m 配置 Trae 路径

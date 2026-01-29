@@ -167,7 +167,7 @@
     console.log('💡 提示：');
     console.log('  - 要停止测试，输入: stopTest()');
     console.log('  - 要手动发送"继续"，输入: sendContinue()');
-    console.log('  - 要检查 AI 状态，输入: checkAIStatus()');
+    console.log('  - 要检查 Ralph 状态，输入: checkAIStatus()');
     console.log('');
     
     testInterval = setInterval(() => {
@@ -175,9 +175,9 @@
       
       console.log(`\n[检查 ${checkCount}] ${new Date().toLocaleTimeString()}`);
       
-      // 检查 AI 状态
+      // 检查 Ralph 状态
       const working = isAIWorking();
-      console.log(`AI 状态: ${working ? '🔄 工作中' : '⏸️ 已停止'}`);
+      console.log(`Ralph 状态: ${working ? '🔄 工作中' : '⏸️ 已停止'}`);
       
       if (working) {
         stableCount = 0;
@@ -227,7 +227,7 @@
   
   window.checkAIStatus = function() {
     const working = isAIWorking();
-    console.log(`当前 AI 状态: ${working ? '🔄 工作中' : '⏸️ 已停止'}`);
+    console.log(`当前 Ralph 状态: ${working ? '🔄 工作中' : '⏸️ 已停止'}`);
     return working;
   };
   
@@ -250,7 +250,7 @@
     console.log(loading ? '✅ 找到' : '⚠️ 未找到（AI 可能未工作）', loading);
     
     console.log('');
-    console.log('4. AI 状态:');
+    console.log('4. Ralph 状态:');
     checkAIStatus();
   };
   
@@ -267,7 +267,7 @@
   console.log('📖 可用命令：');
   console.log('  stopTest()           - 停止测试');
   console.log('  sendContinue()       - 手动发送"继续"');
-  console.log('  checkAIStatus()      - 检查 AI 状态');
+  console.log('  checkAIStatus()      - 检查 Ralph 状态');
   console.log('  testSelectors()      - 测试所有选择器');
   console.log('  testSendMessage()    - 测试发送消息');
   console.log('');

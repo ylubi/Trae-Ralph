@@ -24,7 +24,7 @@
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
-const scenarioLoader = require('../scenarios/loader.js');
+const scenarioLoader = require('./scenarios/loader.js');
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -243,7 +243,7 @@ module.exports = {
 `;
     
     const fileName = id.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '') + '.js';
-    const filePath = path.join(__dirname, '../scenarios/custom', fileName);
+    const filePath = path.join(__dirname, 'scenarios/custom', fileName);
     
     fs.writeFileSync(filePath, scenarioContent);
     
@@ -282,7 +282,7 @@ async function editScenarioFile() {
     }
     
     const scenario = customScenarios[index];
-    const filePath = path.join(__dirname, '../scenarios/custom', scenario.file);
+    const filePath = path.join(__dirname, 'scenarios/custom', scenario.file);
     
     log('');
     log(`文件路径: ${filePath}`, 'blue');
