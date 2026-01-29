@@ -237,10 +237,6 @@ async function injectScript() {
             log('✅ 已连接', 'green');
             log('');
             
-            // 读取注入脚本
-            log('📖 读取注入脚本...', 'blue');
-            let script = fs.readFileSync(CONFIG.scriptPath, 'utf8');
-            
             // 加载场景配置
             const scenarioLoader = require(path.join(__dirname, 'scenarios/loader.js'));
             const scenariosConfig = scenarioLoader.generateBrowserConfig();
@@ -250,21 +246,16 @@ async function injectScript() {
                 path.join(__dirname, 'editor-api/selectors.js'), 
                 'utf8'
             );
-            
-            // 修改配置
-            script = script.replace(
-                'checkInterval: 5000',
-                `checkInterval: ${CONFIG.checkInterval}`
-            ).replace(
-                'stableCount: 3',
-                `stableCount: ${CONFIG.stableCount}`
-            ).replace(
-                'const SCENARIOS_PLACEHOLDER = null;',
-                `const SCENARIOS_PLACEHOLDER = ${JSON.stringify(scenariosConfig, null, 2).replace(/^/gm, '  ').trim()};`
-            ).replace(
-                'const SELECTORS_PLACEHOLDER = null;',
-                `const SELECTORS_PLACEHOLDER = ${JSON.stringify(selectorsScript)};`
-            );
+
+            // 构建 Ralph Loop 脚本
+            log('🏗️ 构建 Ralph Loop 脚本...', 'blue');
+            const { build } = require('./setup/builder');
+            const script = build({
+                checkInterval: CONFIG.checkInterval,
+                stableCount: CONFIG.stableCount,
+                scenarios: scenariosConfig,
+                selectors: selectorsScript
+            });
             
             // 包装脚本
             const wrappedScript = `

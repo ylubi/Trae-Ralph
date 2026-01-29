@@ -183,10 +183,6 @@ async function injectScript() {
         log('✅ 已连接到 Trae', 'green');
         log('');
         
-        // 读取注入脚本
-        log('📖 读取注入脚本...', 'blue');
-        let script = fs.readFileSync(CONFIG.scriptPath, 'utf8');
-        
         // 加载场景配置
         const scenarioLoader = require(path.join(__dirname, 'scenarios/loader.js'));
         const scenariosConfig = scenarioLoader.generateBrowserConfig();
@@ -196,49 +192,20 @@ async function injectScript() {
             path.join(__dirname, 'editor-api/selectors.js'), 
             'utf8'
         );
+
+        // 构建 Ralph Loop 脚本
+        const { build } = require('./setup/builder');
+        const ralphLoopScript = build({
+            checkInterval: CONFIG.checkInterval,
+            stableCount: CONFIG.stableCount,
+            scenarios: scenariosConfig,
+            selectors: selectorsScript
+        });
         
-        // 修改配置
-        script = script.replace(
-            'checkInterval: 5000',
-            `checkInterval: ${CONFIG.checkInterval}`
-        ).replace(
-            'stableCount: 3',
-            `stableCount: ${CONFIG.stableCount}`
-        ).replace(
-            'const SCENARIOS_PLACEHOLDER = null;',
-            `const SCENARIOS_PLACEHOLDER = ${JSON.stringify(scenariosConfig, null, 2).replace(/^/gm, '  ').trim()};`
-        ).replace(
-            'const SELECTORS_PLACEHOLDER = null;',
-            `const SELECTORS_PLACEHOLDER = ${JSON.stringify(selectorsScript)};`
-        );
-        
-        log('✅ 脚本已读取', 'green');
-        log('');
-        
-        // 包装脚本（防止重复注入）
-        const wrappedScript = `
-            (function() {
-                // 如果已存在，先尝试停止旧循环
-                if (window.stopLoop) {
-                    console.log('🔄 检测到旧版本，正在停止...');
-                    try { window.stopLoop(); } catch(e) { console.error(e); }
-                }
-                
-                if (window.__TRAE_RALPH_LOOP_INJECTED__) {
-                    console.log('🔄 更新 Trae Ralph Loop...');
-                }
-                window.__TRAE_RALPH_LOOP_INJECTED__ = true;
-                
-                console.log('🚀 Trae Ralph Loop 通过 CDP 注入');
-                
-                ${script}
-            })();
-        `;
-        
-        // 注入脚本
-        log('💉 注入脚本到 Trae...', 'blue');
+        // 注入 Ralph Loop
+        log('💉 正在注入 Ralph Loop...', 'blue');
         const result = await Runtime.evaluate({
-            expression: wrappedScript,
+            expression: ralphLoopScript,
             returnByValue: true
         });
         
