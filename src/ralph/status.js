@@ -1,6 +1,22 @@
-// ============================================
-// Trae Ralph Loop - 状态检测
-// ============================================
+/**
+ * @file status.js
+ * @description 状态检测模块
+ * 
+ * 该模块负责判断 AI 当前的宏观工作状态，是主循环决策的基础。
+ * 
+ * 主要功能：
+ * - 判断 AI 是否正在工作 (isAIWorking):
+ *   - 检查 Loading 指示器
+ *   - 检查输入框禁用状态
+ *   - 检查停止按钮状态
+ * - 判断是否存在阻断性错误 (isBlockingError):
+ *   - 检查模型限制提示
+ *   - 检查系统错误横幅
+ * 
+ * 主要导出函数：
+ * - isAIWorking
+ * - isBlockingError
+ */
 const { 
   getLastAssistantReplyElement, 
   getLastAssistantTurnElement, 
@@ -9,6 +25,10 @@ const {
 } = require('./dom');
 const { findElement } = require('./utils');
 
+/**
+ * 检查是否存在阻断性错误（如模型限制、系统错误等）
+ * @returns {boolean} 是否存在阻断性错误
+ */
 function isBlockingError() {
   // 1. 检查系统级错误 (仅限最后一条消息)
   const lastTurn = getLastAssistantReplyElement() || getLastAssistantTurnElement();
@@ -30,6 +50,10 @@ function isBlockingError() {
   return false;
 }
 
+/**
+ * 检查 AI 是否正在工作
+ * @returns {boolean} 是否正在工作
+ */
 function isAIWorking() {
   const isChatIdleState = () => {
     const container = document.querySelector('.chat-input-v2-container');

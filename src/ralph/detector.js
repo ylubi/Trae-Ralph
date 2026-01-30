@@ -1,6 +1,19 @@
-// ============================================
-// Trae Ralph Loop - 场景检测器
-// ============================================
+/**
+ * @file detector.js
+ * @description 场景检测核心模块
+ * 
+ * 该模块实现了 ScenarioDetector 类，负责：
+ * - 维护聊天上下文历史
+ * - 根据配置的规则 (Scenarios) 匹配当前场景
+ * - 处理场景优先级和触发频率限制
+ * - 生成场景响应内容 (支持模板变量替换)
+ * 
+ * 主要导出类：
+ * - ScenarioDetector: 场景检测器类
+ *   - detect: 执行检测
+ *   - recordMessage: 记录历史消息
+ *   - getResponse: 获取响应内容
+ */
 
 const { CONFIG } = require('./config');
 const { 
@@ -10,6 +23,10 @@ const {
     getLastMessage 
 } = require('./dom');
 
+/**
+ * 场景检测器类
+ * 负责根据聊天内容、DOM 状态和时间等上下文，匹配并触发相应的场景
+ */
 class ScenarioDetector {
     constructor() {
       this.lastMessages = [];
@@ -18,6 +35,10 @@ class ScenarioDetector {
       this.lastGroupTriggeredAt = {};
     }
     
+    /**
+     * 记录历史消息
+     * @param {string} message 消息内容
+     */
     recordMessage(message) {
       this.lastMessages.push({
         text: message,
@@ -28,6 +49,10 @@ class ScenarioDetector {
       }
     }
 
+    /**
+     * 标记场景为已触发
+     * @param {string} scenarioId 场景ID
+     */
     markTriggered(scenarioId) {
         this.lastTriggeredAt[scenarioId] = Date.now();
         const scenario = CONFIG.scenarios[scenarioId];
@@ -36,12 +61,24 @@ class ScenarioDetector {
         }
     }
     
+    /**
+     * 检测文本是否包含关键词
+     * @param {string} text 待检测文本
+     * @param {string[]} keywords 关键词数组
+     * @returns {boolean} 是否包含任一关键词
+     */
     detectKeywords(text, keywords) {
       if (!keywords || keywords.length === 0) return false;
       const lowerText = text.toLowerCase();
       return keywords.some(kw => lowerText.includes(kw.toLowerCase()));
     }
     
+    /**
+     * 检测文本是否匹配正则模式
+     * @param {string} text 待检测文本
+     * @param {(string|RegExp)[]} patterns 正则模式数组
+     * @returns {boolean} 是否匹配任一模式
+     */
     detectPatterns(text, patterns) {
       if (!patterns || patterns.length === 0) return false;
       return patterns.some(pattern => {
@@ -56,7 +93,171 @@ class ScenarioDetector {
         }
       });
     }
+
+    /**
+     * 检查场景冷却状态
+     * @param {Object} scenario 场景配置
+     * @param {string} id 场景ID
+     * @returns {boolean} 是否处于冷却中
+     */
+    isCooldownActive(scenario, id) {
+        // 1. 组冷却
+        if (scenario.group) {
+            const lastGroupTime = this.lastGroupTriggeredAt[scenario.group] || 0;
+            const groupCooldown = scenario.groupCooldown || 30000;
+            if (Date.now() - lastGroupTime < groupCooldown) {
+                return true;
+            }
+        }
+        // 2. 单场景冷却
+        if (scenario.cooldown) {
+            const lastTime = this.lastTriggeredAt[id] || 0;
+            if (Date.now() - lastTime < scenario.cooldown) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 执行文本检查 (TextCheck)
+     * @param {Object} d 检测配置
+     * @returns {Object|null} 匹配结果
+     */
+    checkText(d) {
+        if (!d.textCheck) return null;
+        
+        const { selector, text, pattern, lastTurnOnly } = d.textCheck;
+        const useScope = lastTurnOnly !== false;
+        let elements = [];
+        
+        if (useScope) {
+            const scope = getLastAssistantReplyElement() || getLastAssistantTurnElement();
+            if (scope) {
+                elements = Array.from(scope.querySelectorAll(selector));
+            }
+            if (elements.length === 0) {
+                const turn = getLastAssistantTurnElement();
+                if (turn) elements = Array.from(turn.querySelectorAll(selector));
+            }
+        } else {
+            elements = Array.from(document.querySelectorAll(selector));
+        }
+
+        for (let i = elements.length - 1; i >= 0; i--) {
+            const el = elements[i];
+            const content = el.textContent || '';
+            let isMatch = false;
+            
+            if (text && content.includes(text)) {
+                isMatch = true;
+            } else if (pattern) {
+                try {
+                    const regex = typeof pattern === 'string' ? new RegExp(pattern, 'i') : pattern;
+                    if (regex.test(content)) {
+                        isMatch = true;
+                    }
+                } catch(e) { console.error('正则匹配错误:', e); }
+            }
+            
+            if (isMatch) {
+                return { type: 'textCheck', element: el };
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 执行选择器检查
+     * @param {Object} d 检测配置
+     * @param {string} id 场景ID
+     * @returns {Object|null} 匹配结果
+     */
+    checkSelectors(d, id) {
+        if (!d.selectors || d.selectors.length === 0) return null;
+
+        const scope = getLastAssistantReplyElement() || getLastAssistantTurnElement();
+        if (scope) {
+            for (const sel of d.selectors) {
+                const foundEl = scope.querySelector(sel);
+                if (foundEl) {
+                    return { type: 'selector', element: foundEl };
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 执行时长检查
+     * @param {Object} scenario 场景配置
+     * @param {string} id 场景ID
+     * @param {number} stoppedDuration 停止时长
+     * @returns {Object|null} 匹配结果
+     */
+    checkDuration(scenario, id, stoppedDuration) {
+        if (!scenario.checkDuration) return null;
+        if (stoppedDuration < (scenario.thinkingTime || 30000)) return null;
+
+        // 如果配置了 textCheck，需同时满足
+        if (scenario.detection && scenario.detection.textCheck) {
+            const textMatch = this.checkText(scenario.detection);
+            if (textMatch) {
+                return { type: 'duration' };
+            }
+        } else {
+            return { type: 'duration' };
+        }
+        return null;
+    }
+
+    /**
+     * 评估单个场景是否匹配
+     * @param {Object} scenario 场景配置
+     * @param {string} id 场景ID
+     * @param {Object} context 上下文
+     * @returns {Object|null} 匹配结果
+     */
+    evaluateScenario(scenario, id, context) {
+        const d = scenario.detection || scenario;
+        const { lastMessage, chatContent, stoppedDuration } = context;
+
+        // 1. TextCheck
+        const textMatch = this.checkText(d);
+        if (textMatch) return { type: 'textCheck', scenario: id, element: textMatch.element };
+
+        // 2. Selectors
+        const selectorMatch = this.checkSelectors(d, id);
+        if (selectorMatch) return { type: 'selector', scenario: id, element: selectorMatch.element };
+
+        // 3. Keywords
+        if (d.keywords) {
+             const text = lastMessage || chatContent;
+             if (this.detectKeywords(text, d.keywords)) {
+                 return { type: 'keyword', scenario: id };
+             }
+        }
+
+        // 4. Patterns
+        if (d.patterns) {
+             const text = lastMessage || chatContent;
+             if (this.detectPatterns(text, d.patterns)) {
+                 return { type: 'pattern', scenario: id };
+             }
+        }
+
+        // 5. Duration
+        const durationMatch = this.checkDuration(scenario, id, stoppedDuration);
+        if (durationMatch) return { type: 'duration', scenario: id };
+
+        return null;
+    }
     
+    /**
+     * 执行场景检测
+     * @param {Object} context 上下文 (lastMessage, chatContent, stoppedDuration, hasEverWorked)
+     * @returns {Object} 检测结果 { detected, scenario, scenarioConfig, matchInfo, priority }
+     */
     detect(context) {
       const { lastMessage, chatContent, stoppedDuration, hasEverWorked } = context;
       
@@ -70,179 +271,32 @@ class ScenarioDetector {
       const matches = [];
 
       for (const [id, scenario] of enabledScenarios) {
-        // 检查组冷却时间
-        if (scenario.group) {
-            const lastGroupTime = this.lastGroupTriggeredAt[scenario.group] || 0;
-            const groupCooldown = scenario.groupCooldown || 30000; // 默认组冷却 30秒
-            if (Date.now() - lastGroupTime < groupCooldown) {
-                continue;
-            }
-        }
+        if (this.isCooldownActive(scenario, id)) continue;
 
-        // 检查单场景冷却时间
-        if (scenario.cooldown) {
-            const lastTime = this.lastTriggeredAt[id] || 0;
-            const now = Date.now();
-            if (now - lastTime < scenario.cooldown) {
-                continue;
-            }
-        }
-
-        let detected = false;
-        let matchInfo = null;
+        if (scenario.requiresActiveHistory && !hasEverWorked) continue;
         
-        // 兼容 detection 对象配置
-        const d = scenario.detection || scenario;
-
-        // 历史状态检测 (新增)
-        if (scenario.requiresActiveHistory && !hasEverWorked) {
-          continue;
-        }
+        const matchInfo = this.evaluateScenario(scenario, id, context);
         
-            // 1. 文本检查 (TextCheck) - 高精度
-        if (d.textCheck) {
-            const { selector, text, pattern, lastTurnOnly } = d.textCheck;
-            const useScope = lastTurnOnly !== false;
-            let elements = [];
-            if (useScope) {
-                const scope = getLastAssistantReplyElement() || getLastAssistantTurnElement();
-                if (scope) {
-                    elements = Array.from(scope.querySelectorAll(selector));
-                }
-                if (elements.length === 0) {
-                    const turn = getLastAssistantTurnElement();
-                    if (turn) {
-                        elements = Array.from(turn.querySelectorAll(selector));
-                    }
-                }
-            } else {
-                elements = Array.from(document.querySelectorAll(selector));
+        if (matchInfo) {
+             // 未完成检测
+            if (scenario.checkIncomplete) {
+                const hasIncomplete = scenario.incompleteIndicators.some(ind =>
+                    chatContent.includes(ind)
+                );
+                if (!hasIncomplete) continue;
             }
 
-            for (let i = elements.length - 1; i >= 0; i--) {
-                const el = elements[i];
-                const content = el.textContent || '';
-                let isMatch = false;
-                
-                if (text && content.includes(text)) {
-                    isMatch = true;
-                } else if (pattern) {
-                    try {
-                        const regex = typeof pattern === 'string' ? new RegExp(pattern, 'i') : pattern;
-                        if (regex.test(content)) {
-                            isMatch = true;
-                        }
-                    } catch(e) { console.error('正则匹配错误:', e); }
-                }
-                
-                if (isMatch) {
-                    detected = true;
-                    matchInfo = { type: 'textCheck', scenario: id, element: el };
-                    break;
-                }
-            }
+            matches.push({
+                detected: true,
+                scenario: id,
+                scenarioConfig: scenario,
+                matchInfo,
+                priority: scenario.priority
+            });
         }
-
-        // 2. 选择器检测
-        if (!detected && d.selectors && d.selectors.length > 0) {
-            // 强制限制在最新的回复中查找
-            const scope = getLastAssistantReplyElement() || getLastAssistantTurnElement();
-
-            if (scope) {
-                // 对于数组中的任意一个选择器，只要在 scope 内找到匹配即可
-                for (const sel of d.selectors) {
-                    const foundEl = scope.querySelector(sel);
-                    if (foundEl) {
-                        detected = true;
-                        matchInfo = { type: 'selector', scenario: id, element: foundEl };
-                        break;
-                    }
-                }
-            }
-        }
-        
-        // 3. 关键词检测
-        if (!detected && d.keywords) {
-          const text = lastMessage || chatContent;
-          if (this.detectKeywords(text, d.keywords)) {
-            detected = true;
-            matchInfo = { type: 'keyword', scenario: id };
-          }
-        }
-        
-        // 4. 正则检测
-        if (!detected && d.patterns) {
-          const text = lastMessage || chatContent;
-          if (this.detectPatterns(text, d.patterns)) {
-            detected = true;
-            matchInfo = { type: 'pattern', scenario: id };
-          }
-        }
-        
-        // 时长检测
-        if (!detected && scenario.checkDuration) {
-          if (stoppedDuration >= (scenario.thinkingTime || 30000)) {
-            // 对于 checkDuration 类型的场景，如果配置了 textCheck，需要同时满足文本条件
-            if (scenario.detection && scenario.detection.textCheck) {
-                const { selector, text, pattern, lastTurnOnly } = scenario.detection.textCheck;
-                const useScope = lastTurnOnly !== false;
-                let scope = null;
-                if (useScope) {
-                    scope = getLastAssistantReplyElement();
-                    if (!scope) scope = getLastAssistantTurnElement();
-                }
-                const elements = scope ? Array.from(scope.querySelectorAll(selector)) : Array.from(document.querySelectorAll(selector));
-                
-                let textMatch = false;
-                for (const el of elements) {
-                    const content = el.textContent || '';
-                    if (text && content.includes(text)) {
-                        textMatch = true;
-                        break;
-                    } else if (pattern) {
-                        const regex = typeof pattern === 'string' ? new RegExp(pattern, 'i') : pattern;
-                        if (regex.test(content)) {
-                            textMatch = true;
-                            break;
-                        }
-                    }
-                }
-                
-                if (textMatch) {
-                    detected = true;
-                    matchInfo = { type: 'duration', scenario: id };
-                }
-            } else {
-                // 没有额外的文本检查条件，直接基于时间触发
-                detected = true;
-                matchInfo = { type: 'duration', scenario: id };
-            }
-          }
-        }
-        
-        // 未完成检测
-        if (detected && scenario.checkIncomplete) {
-          const hasIncomplete = scenario.incompleteIndicators.some(ind =>
-            chatContent.includes(ind)
-          );
-          if (!hasIncomplete) {
-            detected = false;
-          }
-        }
-        
-        if (detected) {
-          matches.push({
-            detected: true,
-            scenario: id,
-            scenarioConfig: scenario,
-            matchInfo,
-            priority: scenario.priority
-          });
-        }
-      } // end for
+      }
 
       if (matches.length > 0) {
-          // 按优先级降序排序
           matches.sort((a, b) => b.priority - a.priority);
           
           if (matches.length > 1) {
@@ -257,6 +311,12 @@ class ScenarioDetector {
       return { detected: false };
     }
     
+    /**
+     * 获取场景的响应消息
+     * @param {string} scenarioId 场景ID
+     * @param {Object} context 上下文
+     * @returns {string} 响应消息
+     */
     getResponse(scenarioId, context) {
       const scenario = CONFIG.scenarios[scenarioId];
       if (!scenario) return '继续';

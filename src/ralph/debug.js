@@ -1,6 +1,17 @@
-// ============================================
-// Trae Ralph Loop - 调试与UI控制
-// ============================================
+/**
+ * @file debug.js
+ * @description 调试与 UI 控制模块
+ * 
+ * 该模块负责向页面注入调试工具和 UI 控制元素：
+ * - 注入“开启/停止 Ralph”悬浮按钮
+ * - 处理按钮拖拽和主题自适应样式
+ * - 向 window 对象暴露调试 API (window.traeRalph)
+ * 
+ * 主要导出函数：
+ * - addToggleButton: 添加悬浮控制按钮
+ * - exposeDebugTools: 暴露调试工具到全局
+ * - applyThemeStyles: 应用主题样式
+ */
 
 const { CONFIG } = require('./config');
 const { startLoop, stopLoop, toggleLoop } = require('./main'); // 需要确保循环引用被正确处理
@@ -10,6 +21,10 @@ const { _detectThemeBaseColor, _brightness } = require('./utils');
 // 这里可能存在循环依赖，需要小心处理
 // 在浏览器环境中，这些函数会挂载到 window 对象上
 
+/**
+ * 应用主题样式到按钮
+ * @param {HTMLElement} btn 按钮元素
+ */
 function applyThemeStyles(btn) {
   const rgb = _detectThemeBaseColor();
   const bright = _brightness(rgb);
@@ -22,6 +37,9 @@ function applyThemeStyles(btn) {
   btn.style.border = `1px solid ${styles.bd}`;
 }
 
+/**
+ * 向界面添加 Ralph 开关按钮
+ */
 function addToggleButton() {
   try {
     const container = document.querySelector('.left-l');
@@ -63,6 +81,10 @@ function addToggleButton() {
   } catch(e) {}
 }
 
+/**
+ * 暴露调试工具到全局 window 对象
+ * @param {ScenarioDetector} detector 场景检测器实例
+ */
 function exposeDebugTools(detector) {
     window.testScenario = function(scenarioId) {
         const scenario = CONFIG.scenarios[scenarioId];

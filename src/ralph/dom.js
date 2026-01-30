@@ -1,9 +1,29 @@
-// ============================================
-// Trae Ralph Loop - DOM 操作与查询
-// ============================================
+/**
+ * @file dom.js
+ * @description DOM 操作与查询模块
+ * 
+ * 该模块封装了所有针对 Trae 界面元素的 DOM 查询操作，
+ * 屏蔽了具体的 CSS 类名和 DOM 结构细节。
+ * 
+ * 主要功能包括：
+ * - 查找聊天输入框、发送按钮
+ * - 获取最新的对话轮次 (Turn) 和回复内容
+ * - 提取错误提示和状态栏信息
+ * - 兼容 $trae 全局对象和原生 DOM 查询
+ * 
+ * 主要导出函数：
+ * - findChatInput, findSendButton
+ * - getLastAssistantReplyElement
+ * - getLastMessage, getChatContent
+ * - isSendButtonEnabled
+ */
 
 const { findElement } = require('./utils');
 
+/**
+ * 查找聊天输入框元素
+ * @returns {HTMLElement|null} 输入框元素
+ */
 function findChatInput() {
   // 优先使用 $trae
   if (window.$trae) {
@@ -22,6 +42,10 @@ function findChatInput() {
   ]);
 }
 
+/**
+ * 查找发送按钮元素
+ * @returns {HTMLElement|null} 发送按钮元素
+ */
 function findSendButton() {
   if (window.$trae) {
     return window.$trae.chat.sendButton;
@@ -34,6 +58,10 @@ function findSendButton() {
   ]);
 }
 
+/**
+ * 获取最后一个对话轮次元素
+ * @returns {HTMLElement|null} 最后一个对话轮次元素
+ */
 function getLastChatTurnElement() {
   const turns = document.querySelectorAll('section.chat-turn');
   if (turns.length > 0) {
@@ -42,6 +70,10 @@ function getLastChatTurnElement() {
   return null;
 }
 
+/**
+ * 获取最后一个助手回复轮次元素
+ * @returns {HTMLElement|null} 最后一个助手回复轮次元素
+ */
 function getLastAssistantTurnElement() {
   const turns = document.querySelectorAll('section.chat-turn.assistant.task');
   if (turns.length > 0) {
@@ -54,6 +86,10 @@ function getLastAssistantTurnElement() {
   return null;
 }
 
+/**
+ * 获取最后一个助手回复的具体内容元素
+ * @returns {HTMLElement|null} 最后一个助手回复的内容元素
+ */
 function getLastAssistantReplyElement() {
   const turn = getLastAssistantTurnElement();
   if (!turn) return null;
@@ -73,12 +109,20 @@ function getLastAssistantReplyElement() {
   return null;
 }
 
+/**
+ * 获取最后一个助手回复轮次的所有子元素
+ * @returns {HTMLElement[]} 子元素数组
+ */
 function getLastAssistantTurnChildren() {
   const turn = getLastAssistantTurnElement();
   if (!turn) return [];
   return Array.from(turn.children);
 }
 
+/**
+ * 获取最新的助手状态栏元素
+ * @returns {HTMLElement|null} 状态栏元素
+ */
 function getLatestAssistantBarElement() {
   const turn = getLastAssistantTurnElement();
   if (!turn) return null;
@@ -92,6 +136,10 @@ function getLatestAssistantBarElement() {
   return turn.querySelector('.latest-assistant-bar.latest-assistant-bar-stage-0');
 }
 
+/**
+ * 获取最后一个助手回复中的潜在警告/错误元素候选列表
+ * @returns {HTMLElement[]} 候选元素数组
+ */
 function getLastAssistantAlertCandidates() {
   const children = getLastAssistantTurnChildren();
   const candidates = [];
@@ -104,6 +152,10 @@ function getLastAssistantAlertCandidates() {
   return candidates;
 }
 
+/**
+ * 获取最后一条消息的文本内容
+ * @returns {string} 消息文本
+ */
 function getLastMessage() {
   const lastReply = getLastAssistantReplyElement();
   if (lastReply) return (lastReply.textContent || '').trim();
@@ -112,6 +164,10 @@ function getLastMessage() {
   return '';
 }
 
+/**
+ * 获取当前聊天内容的文本（同 getLastMessage）
+ * @returns {string} 聊天内容文本
+ */
 function getChatContent() {
   const lastReply = getLastAssistantReplyElement();
   if (lastReply) return (lastReply.textContent || '').trim();
@@ -120,6 +176,11 @@ function getChatContent() {
   return '';
 }
 
+/**
+ * 获取输入框的文本值
+ * @param {HTMLElement} input 输入框元素
+ * @returns {string} 输入框文本值
+ */
 function getInputTextValue(input) {
   if (!input) return '';
   if (input.contentEditable === 'true' || input.getAttribute('contenteditable') === 'true') {
@@ -128,6 +189,11 @@ function getInputTextValue(input) {
   return (input.value || '').trim();
 }
 
+/**
+ * 检查发送按钮是否可用
+ * @param {HTMLElement} button 发送按钮元素
+ * @returns {boolean} 是否可用
+ */
 function isSendButtonEnabled(button) {
   if (!button) return false;
   if (button.disabled) return false;

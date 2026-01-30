@@ -1,6 +1,20 @@
-// ============================================
-// Trae Ralph Loop - 主逻辑
-// ============================================
+/**
+ * @file main.js
+ * @description 主循环逻辑模块
+ * 
+ * 该模块是 Ralph Loop 的心脏，负责调度整个自动化流程：
+ * - 维护主循环 (setInterval)
+ * - 管理全局状态 (工作/停止、冷却、稳定计数)
+ * - 协调状态检测 (status.js) 和场景响应 (detector.js)
+ * - 执行决策逻辑 (是否介入、何时介入、如何介入)
+ * - 处理异常保底逻辑 (超时跳过)
+ * 
+ * 主要导出函数：
+ * - startLoop: 启动循环
+ * - stopLoop: 停止循环
+ * - toggleLoop: 切换状态
+ * - runLoopIteration: 执行单次迭代
+ */
 
 const { CONFIG } = require('./config');
 const { 
@@ -38,7 +52,10 @@ let lastObservedTaskCount = 0;
 
 const detector = new ScenarioDetector();
 
-// 辅助函数：调度保底跳过
+/**
+ * 辅助函数：调度保底跳过
+ * @param {number} timeoutMs 超时时间(毫秒)，默认 180000 (3分钟)
+ */
 function scheduleSkipFallback(timeoutMs = 180000) {
     const startFirstStop = firstStopTime;
     const startActionAt = lastActionAt;
@@ -97,12 +114,22 @@ function scheduleSkipFallback(timeoutMs = 180000) {
     }, timeoutMs);
 }
 
+/**
+ * 检查是否存在"任务完成"横幅
+ * @returns {boolean} 是否存在
+ */
 function isTaskCompleteBanner() {
-    const el = document.querySelector('.latest-assistant-bar .status .status-text');
+    const els = document.querySelectorAll('.latest-assistant-bar .status .status-text');
+    if (els.length === 0) return false;
+    const el = els[els.length - 1];
     const text = el ? (el.textContent || '').trim() : '';
     return text === '任务完成';
 }
 
+/**
+ * 发送"继续"或点击现有继续按钮
+ * @returns {boolean} 是否成功
+ */
 function sendContinueOrClickExisting() {
     // 0. 检查发送按钮是否处于停止状态 (表示 AI 正在工作)
     // 注意：这里需要通过 DOM 查找，因为 dom.js 中的 isSendButtonEnabled 和 findSendButton 是局部的
@@ -110,94 +137,121 @@ function sendContinueOrClickExisting() {
     return sendMessage('继续');
 }
 
-// 主循环逻辑
-function runLoopIteration() {
-    checkCount++;
-      
-    console.log(`\n[检查 ${checkCount}] ${new Date().toLocaleTimeString()}`);
-    
-    // 0. 全局冷却检查
+// ============================================
+// 循环逻辑拆分 - 辅助函数
+// ============================================
+
+/**
+ * 检查全局冷却状态
+ * @returns {boolean} 如果处于冷却中返回 true
+ */
+function isGlobalCooldownActive() {
     const now = Date.now();
     const globalCooldown = 60000; // 1分钟
     const confirmPopover = document.querySelector('.confirm-popover-body');
     const lastReplyForDelete = getLastAssistantReplyElement();
     const deleteCardPending = lastReplyForDelete && lastReplyForDelete.querySelector('.icd-delete-files-command-card-v2-content.need-confirm');
     const bypassCooldown = !!confirmPopover || !!deleteCardPending;
+
     if (lastActionAt > 0 && now - lastActionAt < globalCooldown) {
         if (!bypassCooldown) {
             console.log(`⏳ 全局冷却中 (${Math.ceil((globalCooldown - (now - lastActionAt))/1000)}s)...`);
             console.log(`Ralph 状态: 🔄 工作中 (冷却中)`);
-            return;
+            return true;
         } else {
             console.log('⏳ 冷却绕过: 检测到确认弹窗或待确认删除，允许继续检测以衔接二次确认');
         }
     }
+    return false;
+}
 
-    const working = isAIWorking();
+/**
+ * 更新并打印状态图标
+ * @param {boolean} working AI是否正在工作
+ */
+function logStatus(working) {
     const statusIcon = working ? '🔄 工作中' : (testInterval ? '⏸️ 监控中(已停止)' : '⏹️ 已停止');
     console.log(`Ralph 状态: ${statusIcon}`);
-    
-    const currentTaskCount = document.getElementsByClassName('ai-agent-task').length;
-    const blocking = isBlockingError();
+}
 
-    if (working) {
-      stableCount = 0;
-      firstStopTime = null;
-      wasWorking = true;
-      hasEverWorked = true; // 标记已开始工作
-      sentDuringStop = false; // 恢复工作后重置发送标记
-      processedScenarioDuringStop = false;
-      stopHandled = false;
-      lastWorkingAt = Date.now();
-      lastObservedTaskCount = currentTaskCount;
-    } else {
-      // 如果任务数量发生变化，说明有新消息，重置计数
-      if (currentTaskCount !== lastObservedTaskCount) {
+/**
+ * 处理 AI 正在工作时的状态重置
+ * @param {number} currentTaskCount 当前任务数量
+ */
+function handleWorkingState(currentTaskCount) {
+    stableCount = 0;
+    firstStopTime = null;
+    wasWorking = true;
+    hasEverWorked = true; // 标记已开始工作
+    sentDuringStop = false; // 恢复工作后重置发送标记
+    processedScenarioDuringStop = false;
+    stopHandled = false;
+    lastWorkingAt = Date.now();
+    lastObservedTaskCount = currentTaskCount;
+}
+
+/**
+ * 检查是否需要强制重新处理任务（例如删除确认、弹窗、任务完成）
+ * @returns {boolean} 是否需要强制重置
+ */
+function shouldForceRecheck() {
+    const lastReplyEl = getLastAssistantReplyElement();
+    const hasDeleteCard = lastReplyEl && lastReplyEl.querySelector('.icd-delete-files-command-card-v2-content.need-confirm');
+    const hasConfirmPopover = document.querySelector('.confirm-popover-body'); // 弹窗是全局的
+    const isTaskCompleted = isTaskCompleteBanner(); // 任务完成状态也视为特殊情况，需要重新检测
+    
+    return hasDeleteCard || hasConfirmPopover || isTaskCompleted;
+}
+
+/**
+ * 处理 AI 停止时的逻辑
+ * @param {number} currentTaskCount 当前任务数量
+ * @param {boolean} blocking 是否有阻断性错误
+ */
+function processStoppedState(currentTaskCount, blocking) {
+    // 1. 如果任务数量发生变化，重置计数
+    if (currentTaskCount !== lastObservedTaskCount) {
         lastObservedTaskCount = currentTaskCount;
         stableCount = 0;
         firstStopTime = null;
         sentDuringStop = false;
         processedScenarioDuringStop = false;
         stopHandled = false;
-      }
-      
-      // 检查是否已经处理过当前数量的任务
-      if (lastHandledTaskCount === currentTaskCount) {
-        // 特殊情况：如果最后一条回复包含未处理的删除卡片或确认弹窗，则强制重新处理
-        const lastReplyEl = getLastAssistantReplyElement();
-        const hasDeleteCard = lastReplyEl && lastReplyEl.querySelector('.icd-delete-files-command-card-v2-content.need-confirm');
-        const hasConfirmPopover = document.querySelector('.confirm-popover-body'); // 弹窗是全局的
-        const isTaskCompleted = isTaskCompleteBanner(); // 任务完成状态也视为特殊情况，需要重新检测
-        
-        if (hasDeleteCard || hasConfirmPopover || isTaskCompleted) {
+    }
+    
+    // 2. 检查是否已经处理过当前数量的任务
+    if (lastHandledTaskCount === currentTaskCount) {
+        if (shouldForceRecheck()) {
           lastHandledTaskCount = 0; // 强制重置
           stopHandled = false;
         } else {
           return;
         }
-      }
-      
-      if (!firstStopTime) {
+    }
+    
+    // 3. 记录停止时间
+    if (!firstStopTime) {
         firstStopTime = Date.now();
-      }
-      
-      if (stopHandled) {
+    }
+    
+    if (stopHandled) {
         return;
-      }
-      
-      // 如果是阻断性错误，直接视为已稳定停止，跳过等待
-      if (blocking) {
-          console.log('⚡ 检测到阻断错误，立即拉满稳定计数...');
-          stableCount = CONFIG.stableCount + 1;
-      } else {
-          stableCount++;
-      }
+    }
+    
+    // 4. 更新稳定计数
+    if (blocking) {
+        console.log('⚡ 检测到阻断错误，立即拉满稳定计数...');
+        stableCount = CONFIG.stableCount + 1;
+    } else {
+        stableCount++;
+    }
 
-      const stoppedDuration = Date.now() - firstStopTime;
-      console.log(`稳定计数: ${stableCount}/${CONFIG.stableCount}`);
-      console.log(`停止时长: ${Math.floor(stoppedDuration / 1000)}秒`);
-      
-      if (stableCount >= CONFIG.stableCount) {
+    const stoppedDuration = Date.now() - firstStopTime;
+    console.log(`稳定计数: ${stableCount}/${CONFIG.stableCount}`);
+    console.log(`停止时长: ${Math.floor(stoppedDuration / 1000)}秒`);
+    
+    // 5. 达到稳定状态，执行场景检测
+    if (stableCount >= CONFIG.stableCount) {
         if (stopHandled) {
           return;
         }
@@ -206,190 +260,260 @@ function runLoopIteration() {
         console.log('');
         console.log('✅ 检测到 AI 已停止');
         
-        if (true) {
-          // 如果最后一条消息是用户的，说明 AI 还没回复，不应触发基于历史回复的场景
-          const lastTurn = getLastChatTurnElement();
-          if (lastTurn && lastTurn.classList.contains('user')) {
-              console.log('⏳ 最后一条消息是用户发送的，等待 AI 响应...');
-              return;
-          }
-
-          const lastMessage = getLastMessage();
-          const chatContent = getChatContent();
-          
-          const result = detector.detect({
-            lastMessage,
-            chatContent,
-            stoppedDuration,
-            hasEverWorked
-          });
-          
-          if (result.detected) {
-            const scenario = result.scenarioConfig;
-            
-            // 如果已经处理过场景，且当前检测到的场景不是“确认”类场景，则跳过
-            const isConfirmScenario = scenario.isConfirm || 
-                                    (scenario.id || '').includes('Confirm') || 
-                                    (scenario.name || '').includes('Confirm') ||
-                                    (scenario.name || '').includes('确认');
-
-            if (processedScenarioDuringStop && !isConfirmScenario) {
-                console.log(`⏳ 本次停止期间已处理过场景，且当前场景 ${scenario.name} 不是确认类操作，跳过`);
-                return;
-            }
-
-            // 兼容 response 对象配置
-            const responseConfig = scenario.response || {};
-            const action = scenario.action || responseConfig.action;
-            const targetSelector = scenario.target || responseConfig.target;
-            const matchText = scenario.matchText || responseConfig.matchText; // 新增：支持文本匹配
-            const waitTime = scenario.waitTime || responseConfig.waitTime;
-
-            // 标记场景触发时间，用于冷却计算
-            detector.markTriggered(result.scenario);
-
-            console.log(`🎯 检测到场景: ${scenario.name}`);
-            console.log(`   匹配类型: ${result.matchInfo.type}`);
-            
-            if (action === 'wait') {
-              const waitSec = Math.floor(waitTime / 1000);
-              console.log(`⏳ 等待 ${waitSec} 秒后继续...`);
-              setTimeout(() => {
-                const message = detector.getResponse(result.scenario, { lastMessage });
-                if (!sentDuringStop) {
-                  sendMessage(message);
-                  lastActionAt = Date.now(); // 更新全局操作时间
-                  sentDuringStop = true;
-                  console.log(`✅ 已发送: "${message}" (停止期间仅发送一次)`);
-                } else {
-                  console.log('⏳ 已在本次停止期间发送过消息，跳过重复发送');
-                }
-              }, waitTime);
-            } else if (action === 'log') {
-              const message = detector.getResponse(result.scenario, { lastMessage });
-              console.log(message);
-            } else if (action === 'click') {
-              if (targetSelector) {
-                console.log(`🖱️ 尝试点击元素: ${targetSelector}${matchText ? ` (文本匹配: "${matchText}")` : ''}`);
-                
-                let targetEl = null;
-                
-                // 辅助函数：检查元素文本是否匹配
-                const checkTextMatch = (el) => {
-                    if (!matchText) return true;
-                    const content = (el.textContent || '').trim();
-                    return content === matchText || content.includes(matchText);
-                };
-
-                if (result.matchInfo && result.matchInfo.element) {
-                    try {
-                        let current = result.matchInfo.element;
-                        let depth = 0;
-                        const maxDepth = 8;
-                        
-                        while (current && depth < maxDepth) {
-                            // 如果当前元素直接匹配且文本符合
-                            if (current.matches && current.matches(targetSelector) && checkTextMatch(current)) {
-                                targetEl = current;
-                                break;
-                            }
-                            
-                            // 在子元素中查找
-                            const candidates = Array.from(current.querySelectorAll(targetSelector));
-                            const found = candidates.find(el => checkTextMatch(el));
-                            
-                            if (found) {
-                                targetEl = found;
-                                break;
-                            }
-                            
-                            current = current.parentElement;
-                            depth++;
-                        }
-                    } catch(e) { console.error('相对查找失败:', e); }
-                }
-
-                if (!targetEl) {
-                    const candidates = Array.from(document.querySelectorAll(targetSelector));
-                    targetEl = candidates.find(el => checkTextMatch(el));
-                }
-
-                if (targetEl) {
-                  targetEl.click();
-                  lastActionAt = Date.now(); // 更新全局操作时间
-                  console.log('✅ 点击成功');
-                } else {
-                  console.error(`❌ 无法点击: 未找到目标元素 ${targetSelector}`);
-                }
-              } else {
-                console.error('❌ 点击操作未配置 target');
-              }
-            } else if (action === 'custom') {
-              if (scenario.handler === 'skipAfterTimeout') {
-                console.log('⏳ 检测到可跳过的终端命令，启动3分钟保底跳过');
-                scheduleSkipFallback(180000);
-                processedScenarioDuringStop = true;
-              } else {
-                const message = detector.getResponse(result.scenario, { lastMessage });
-                console.log(`💡 准备发送: "${message}"`);
-                if (!sentDuringStop) {
-                  const sent = sendTerminalInput(message) || sendMessage(message);
-                  if (sent) {
-                    lastActionAt = Date.now(); // 更新全局操作时间
-                    sentDuringStop = true;
-                    console.log('✅ 消息已发送 (停止期间仅发送一次)');
-                  }
-                } else {
-                  console.log('⏳ 已在本次停止期间发送过消息，跳过重复发送');
-                }
-              }
-            } else {
-              const message = detector.getResponse(result.scenario, { lastMessage });
-              console.log(`💡 准备发送: "${message}"`);
-              if (!sentDuringStop) {
-                const sent = message === '继续' ? sendContinueOrClickExisting() : sendMessage(message);
-                if (sent) {
-                  lastActionAt = Date.now(); // 更新全局操作时间
-                  sentDuringStop = true;
-                  console.log('✅ 消息已发送 (停止期间仅发送一次)');
-                }
-              } else {
-                console.log('⏳ 已在本次停止期间发送过消息，跳过重复发送');
-              }
-            }
-          } else {
-            console.log('💡 未匹配特定场景，发送默认"继续"');
-            if (!sentDuringStop) {
-              const sent = sendContinueOrClickExisting();
-              if (sent) {
-                lastActionAt = Date.now(); // 更新全局操作时间
-                sentDuringStop = true;
-                console.log('✅ 已发送默认继续 (停止期间仅发送一次)');
-              }
-            } else {
-              console.log('⏳ 已在本次停止期间发送过消息，跳过重复发送');
-            }
-          }
-          processedScenarioDuringStop = true;
-        } else {
-          console.log('⏳ 本次停止期间已处理过场景，跳过检测');
-          if (!sentDuringStop) {
-            const sent = sendContinueOrClickExisting();
-            if (sent) {
-              lastActionAt = Date.now(); // 更新全局操作时间
-              sentDuringStop = true;
-              console.log('✅ 已发送默认继续 (停止期间仅发送一次)');
-            }
-          } else {
-            console.log('⏳ 已在本次停止期间发送过消息，跳过重复发送');
-          }
-        }
+        runScenarioDetection(stoppedDuration);
         
         wasWorking = false;
-      }
     }
 }
 
+/**
+ * 执行场景检测与响应
+ * @param {number} stoppedDuration 停止时长
+ */
+function runScenarioDetection(stoppedDuration) {
+    // 1. 检查最后一条消息是否是用户的
+    const lastTurn = getLastChatTurnElement();
+    if (lastTurn && lastTurn.classList.contains('user')) {
+        console.log('⏳ 最后一条消息是用户发送的，等待 AI 响应...');
+        return;
+    }
+
+    const lastMessage = getLastMessage();
+    const chatContent = getChatContent();
+    
+    const result = detector.detect({
+        lastMessage,
+        chatContent,
+        stoppedDuration,
+        hasEverWorked
+    });
+    
+    if (result.detected) {
+        handleDetectedScenario(result, lastMessage);
+    } else {
+        handleNoScenarioMatch();
+    }
+    
+    processedScenarioDuringStop = true;
+}
+
+/**
+ * 处理已检测到的场景
+ * @param {Object} result 检测结果
+ * @param {string} lastMessage 最后一条消息
+ */
+function handleDetectedScenario(result, lastMessage) {
+    const scenario = result.scenarioConfig;
+    
+    // 检查是否在停止期间已处理过非确认类场景
+    const isConfirmScenario = scenario.isConfirm || 
+                            (scenario.id || '').includes('Confirm') || 
+                            (scenario.name || '').includes('Confirm') ||
+                            (scenario.name || '').includes('确认');
+
+    if (processedScenarioDuringStop && !isConfirmScenario) {
+        console.log(`⏳ 本次停止期间已处理过场景，且当前场景 ${scenario.name} 不是确认类操作，跳过`);
+        return;
+    }
+
+    const responseConfig = scenario.response || {};
+    const action = scenario.action || responseConfig.action;
+    const targetSelector = scenario.target || responseConfig.target;
+    const matchText = scenario.matchText || responseConfig.matchText;
+    const waitTime = scenario.waitTime || responseConfig.waitTime;
+
+    detector.markTriggered(result.scenario);
+
+    console.log(`🎯 检测到场景: ${scenario.name}`);
+    console.log(`   匹配类型: ${result.matchInfo.type}`);
+    
+    if (action === 'wait') {
+        executeWaitAction(waitTime, result.scenario, lastMessage);
+    } else if (action === 'log') {
+        const message = detector.getResponse(result.scenario, { lastMessage });
+        console.log(message);
+    } else if (action === 'click') {
+        executeClickAction(targetSelector, matchText, result.matchInfo);
+    } else if (action === 'custom') {
+        executeCustomAction(scenario, result.scenario, lastMessage);
+    } else {
+        // default send
+        executeSendAction(detector.getResponse(result.scenario, { lastMessage }));
+    }
+}
+
+/**
+ * 执行等待动作
+ * @param {number} waitTime 等待时间(毫秒)
+ * @param {string} scenarioId 场景ID
+ * @param {string} lastMessage 最后一条消息
+ */
+function executeWaitAction(waitTime, scenarioId, lastMessage) {
+    const waitSec = Math.floor(waitTime / 1000);
+    console.log(`⏳ 等待 ${waitSec} 秒后继续...`);
+    setTimeout(() => {
+        const message = detector.getResponse(scenarioId, { lastMessage });
+        if (!sentDuringStop) {
+            sendMessage(message);
+            lastActionAt = Date.now();
+            sentDuringStop = true;
+            console.log(`✅ 已发送: "${message}" (停止期间仅发送一次)`);
+        } else {
+            console.log('⏳ 已在本次停止期间发送过消息，跳过重复发送');
+        }
+    }, waitTime);
+}
+
+/**
+ * 执行点击动作
+ * @param {string} targetSelector 目标选择器
+ * @param {string} matchText 匹配文本
+ * @param {Object} matchInfo 匹配信息
+ */
+function executeClickAction(targetSelector, matchText, matchInfo) {
+    if (targetSelector) {
+        console.log(`🖱️ 尝试点击元素: ${targetSelector}${matchText ? ` (文本匹配: "${matchText}")` : ''}`);
+        
+        let targetEl = null;
+        
+        const checkTextMatch = (el) => {
+            if (!matchText) return true;
+            const content = (el.textContent || '').trim();
+            return content === matchText || content.includes(matchText);
+        };
+
+        if (matchInfo && matchInfo.element) {
+            try {
+                let current = matchInfo.element;
+                let depth = 0;
+                const maxDepth = 8;
+                
+                while (current && depth < maxDepth) {
+                    if (current.matches && current.matches(targetSelector) && checkTextMatch(current)) {
+                        targetEl = current;
+                        break;
+                    }
+                    
+                    const candidates = Array.from(current.querySelectorAll(targetSelector));
+                    const found = candidates.find(el => checkTextMatch(el));
+                    
+                    if (found) {
+                        targetEl = found;
+                        break;
+                    }
+                    
+                    current = current.parentElement;
+                    depth++;
+                }
+            } catch(e) { console.error('相对查找失败:', e); }
+        }
+
+        if (!targetEl) {
+            const candidates = Array.from(document.querySelectorAll(targetSelector));
+            targetEl = candidates.find(el => checkTextMatch(el));
+        }
+
+        if (targetEl) {
+            targetEl.click();
+            lastActionAt = Date.now();
+            console.log('✅ 点击成功');
+        } else {
+            console.error(`❌ 无法点击: 未找到目标元素 ${targetSelector}`);
+        }
+    } else {
+        console.error('❌ 点击操作未配置 target');
+    }
+}
+
+/**
+ * 执行自定义动作
+ * @param {Object} scenario 场景配置
+ * @param {string} scenarioId 场景ID
+ * @param {string} lastMessage 最后一条消息
+ */
+function executeCustomAction(scenario, scenarioId, lastMessage) {
+    if (scenario.handler === 'skipAfterTimeout') {
+        console.log('⏳ 检测到可跳过的终端命令，启动3分钟保底跳过');
+        scheduleSkipFallback(180000);
+        processedScenarioDuringStop = true;
+    } else {
+        const message = detector.getResponse(scenarioId, { lastMessage });
+        console.log(`💡 准备发送: "${message}"`);
+        if (!sentDuringStop) {
+            const sent = sendTerminalInput(message) || sendMessage(message);
+            if (sent) {
+                lastActionAt = Date.now();
+                sentDuringStop = true;
+                console.log('✅ 消息已发送 (停止期间仅发送一次)');
+            }
+        } else {
+            console.log('⏳ 已在本次停止期间发送过消息，跳过重复发送');
+        }
+    }
+}
+
+/**
+ * 执行发送动作
+ * @param {string} message 消息内容
+ */
+function executeSendAction(message) {
+    console.log(`💡 准备发送: "${message}"`);
+    if (!sentDuringStop) {
+        const sent = message === '继续' ? sendContinueOrClickExisting() : sendMessage(message);
+        if (sent) {
+            lastActionAt = Date.now();
+            sentDuringStop = true;
+            console.log('✅ 消息已发送 (停止期间仅发送一次)');
+        }
+    } else {
+        console.log('⏳ 已在本次停止期间发送过消息，跳过重复发送');
+    }
+}
+
+/**
+ * 处理无场景匹配的情况
+ */
+function handleNoScenarioMatch() {
+    console.log('💡 未匹配特定场景，发送默认"继续"');
+    if (!sentDuringStop) {
+        const sent = sendContinueOrClickExisting();
+        if (sent) {
+            lastActionAt = Date.now();
+            sentDuringStop = true;
+            console.log('✅ 已发送默认继续 (停止期间仅发送一次)');
+        }
+    } else {
+        console.log('⏳ 已在本次停止期间发送过消息，跳过重复发送');
+    }
+}
+
+/**
+ * 运行一次循环迭代
+ */
+function runLoopIteration() {
+    checkCount++;
+      
+    console.log(`\n[检查 ${checkCount}] ${new Date().toLocaleTimeString()}`);
+    
+    // 0. 全局冷却检查
+    if (isGlobalCooldownActive()) return;
+
+    const working = isAIWorking();
+    logStatus(working);
+    
+    const currentTaskCount = document.getElementsByClassName('ai-agent-task').length;
+    const blocking = isBlockingError();
+
+    if (working) {
+        handleWorkingState(currentTaskCount);
+    } else {
+        processStoppedState(currentTaskCount, blocking);
+    }
+}
+
+/**
+ * 启动 Ralph 循环
+ */
 function startLoop() {
     if (testInterval) {
       console.log('ℹ️ Ralph 循环已在运行');
@@ -419,6 +543,9 @@ function startLoop() {
     window._ralphLoopInterval = testInterval;
 }
 
+/**
+ * 停止 Ralph 循环
+ */
 function stopLoop() {
     if (testInterval) {
       clearInterval(testInterval);
@@ -434,6 +561,9 @@ function stopLoop() {
     }
 }
 
+/**
+ * 切换 Ralph 循环状态
+ */
 function toggleLoop() {
     if (testInterval) {
       stopLoop();

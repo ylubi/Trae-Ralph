@@ -21,7 +21,7 @@ module.exports = {
     textCheck: {
       selector: '.latest-assistant-bar .status .status-text',
       text: '任务完成',
-      lastTurnOnly: true // 强制只检查最后一条
+      lastTurnOnly: true // 限制在最后一条消息中检查
     }
   },
   

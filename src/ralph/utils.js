@@ -1,7 +1,26 @@
-// ============================================
-// Trae Ralph Loop - 辅助工具函数
-// ============================================
+/**
+ * @file utils.js
+ * @description 辅助工具函数模块
+ * 
+ * 提供通用的、无业务逻辑耦合的工具函数。
+ * 
+ * 主要功能：
+ * - 基础 DOM 查找 (findElement)
+ * - 时间格式解析 (parseTime)
+ * - 颜色计算与处理 (主题自适应相关)
+ * 
+ * 主要导出函数：
+ * - findElement
+ * - parseTime
+ * - _detectThemeBaseColor
+ * - _brightness
+ */
 
+/**
+ * 根据选择器列表查找第一个匹配的元素
+ * @param {string[]} selectors CSS选择器数组
+ * @returns {HTMLElement|null} 找到的元素或null
+ */
 function findElement(selectors) {
   for (const selector of selectors) {
     try {
@@ -14,6 +33,11 @@ function findElement(selectors) {
   return null;
 }
 
+/**
+ * 解析时间字符串为毫秒数
+ * @param {string|number} timeStr 时间字符串(如 "5s", "1m")或毫秒数
+ * @returns {number} 毫秒数
+ */
 function parseTime(timeStr) {
     if (typeof timeStr === 'number') return timeStr;
     if (!timeStr) return 0;
@@ -27,6 +51,11 @@ function parseTime(timeStr) {
     return val;
 }
 
+/**
+ * 检测主题基准颜色
+ * @private
+ * @returns {{r: number, g: number, b: number}} RGB颜色对象
+ */
 function _detectThemeBaseColor() {
     // 尝试从 body 背景色判断
     const bodyBg = window.getComputedStyle(document.body).backgroundColor;
@@ -37,6 +66,11 @@ function _detectThemeBaseColor() {
     return { r: 30, g: 30, b: 30 }; // 默认深色
 }
 
+/**
+ * 计算颜色的亮度值
+ * @param {{r: number, g: number, b: number}} rgb RGB颜色对象
+ * @returns {number} 亮度值
+ */
 function _brightness(rgb) {
     return (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
 }

@@ -1,6 +1,13 @@
-// ============================================
-// Trae Ralph Loop - 简单循环 (测试用)
-// ============================================
+/**
+ * @file simple-loop.js
+ * @description 简易测试循环模块 (已废弃/仅供参考)
+ * 
+ * 这是一个独立的、简化版的循环实现，不依赖其他模块。
+ * 主要用于开发初期的快速测试和验证 DOM 选择器。
+ * 
+ * 注意：生产环境使用的是 main.js 中的完整循环逻辑。
+ * 此文件包含独立的 findElement, sendMessage 等实现。
+ */
 
 const CONFIG = {
   selectors: {
@@ -29,6 +36,11 @@ const CONFIG = {
   stableCount: 3        // 连续 3 次稳定才认为停止
 };
 
+/**
+ * 查找元素辅助函数
+ * @param {string[]} selectors 选择器列表
+ * @returns {HTMLElement|null} 找到的元素
+ */
 function findElement(selectors) {
   for (const selector of selectors) {
     try {
@@ -43,6 +55,10 @@ function findElement(selectors) {
   return null;
 }
 
+/**
+ * 查找聊天输入框
+ * @returns {HTMLElement|null} 输入框元素
+ */
 function findChatInput() {
   const input = findElement(CONFIG.selectors.chatInput);
   if (input) {
@@ -53,6 +69,10 @@ function findChatInput() {
   return input;
 }
 
+/**
+ * 查找发送按钮
+ * @returns {HTMLElement|null} 发送按钮元素
+ */
 function findSendButton() {
   const button = findElement(CONFIG.selectors.sendButton);
   if (button) {
@@ -63,6 +83,10 @@ function findSendButton() {
   return button;
 }
 
+/**
+ * 检查 AI 是否正在工作
+ * @returns {boolean} 是否正在工作
+ */
 function isAIWorking() {
   // 方法 1：检查加载指示器
   const loading = findElement(CONFIG.selectors.loading);
@@ -85,6 +109,11 @@ function isAIWorking() {
   return false;
 }
 
+/**
+ * 发送消息
+ * @param {string} message 消息内容
+ * @returns {boolean} 是否成功
+ */
 function sendMessage(message) {
   const input = findChatInput();
   if (!input) {
@@ -130,6 +159,9 @@ let stableCount = 0;
 let wasWorking = false;
 let testInterval = null;
 
+/**
+ * 开始测试循环
+ */
 function startTest() {
   console.log('🚀 开始测试...');
   console.log('');
@@ -185,6 +217,9 @@ function startTest() {
 // 工具函数导出到 Window
 // ============================================
 
+/**
+ * 暴露工具到 window 对象
+ */
 function exposeTools() {
     window.stopTest = function() {
         if (testInterval) {
