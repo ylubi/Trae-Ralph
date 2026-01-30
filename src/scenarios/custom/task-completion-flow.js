@@ -28,6 +28,6 @@ module.exports = {
   // 响应策略
   response: {
     action: 'send', // 发送消息
-    message: '继续进行开发、优化或者测试'
+    message: '继续'
   }
 };

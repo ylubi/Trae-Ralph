@@ -34,6 +34,16 @@ class ScenarioDetector {
       this.lastTriggeredAt = {};
       this.lastGroupTriggeredAt = {};
     }
+
+    /**
+     * 重置检测器状态
+     */
+    reset() {
+      this.lastMessages = [];
+      this.lastTriggeredAt = {};
+      this.lastGroupTriggeredAt = {};
+      console.log('🧹 场景检测器状态已重置');
+    }
     
     /**
      * 记录历史消息

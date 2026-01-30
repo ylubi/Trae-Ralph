@@ -86,7 +86,7 @@ scenarios/
 | :------------------------- | :--------------- | :----- | :------ | :---------------------------- | :------------------------- | :--- | :--- | :----- | :--- |
 | contextLimit               | 上下文限制       | 中     | builtin | 上下文限制提示/相关关键词     | 发送“继续”                 | 未测 |      |        |      |
 | rateLimit                  | 请求限制         | 中     | builtin | 请求限制提示/相关关键词       | 等待后发送“继续”           | 未测 |      |        |      |
-| interactiveCommand         | 交互式命令       | 高     | builtin | y/n 或确认提示                | 自动回复确认               | 未测 |      |        |      |
+| interactiveCommand         | 交互式命令       | 高     | builtin | y/n、确认提示或终端等待输入   | 自动回复确认/回车          | ✅ |      |        |      |
 | needsConfirmation          | 需要确认         | 高     | builtin | 需要确认提示                  | 发送“确认，继续”           | 未测 |      |        |      |
 | prematureCompletion        | 提前完成         | 中     | builtin | “已完成”且存在未完成提示      | 发送“请继续完成剩余部分”   | 未测 |      |        |      |
 | longThinking               | 长时间思考       | 低     | builtin | 超过阈值无响应                | 发送“继续”                 | 未测 |      |        |      |
@@ -103,7 +103,7 @@ scenarios/
 | queueUpAlert               | 排队提醒         | 低     | custom  | 排队提醒提示                  | 记录日志                   | 未测 |      |        |      |
 | systemError                | 系统错误         | 高     | custom  | 系统未知错误提示              | 发送“继续”                 | ✅ |      |        |      |
 | modelLimitReached          | 模型思考上限     | 中     | custom  | 思考次数已达上限              | 点击继续                   | 未测 |      |        |      |
-| taskCompletedConfirmCheck  | 任务完成确认检查 | 中     | custom  | Trae状态显示“任务完成”        | 发送“继续进行开发、优化或者测试” | ✅ |      |        |      |
+| taskCompletedConfirmCheck  | 任务完成确认检查 | 中     | custom  | Trae状态显示“任务完成”        | 发送“继续” | ✅ |      |        |      |
 
 ## 测试方法
 
@@ -114,7 +114,7 @@ scenarios/
 + ✅ 运行命令卡片：使用提示词 "运行命令 运行命令 New-Item -Path ttt -ItemType Directory，之后运行命令 Remove-Item ttt", 然后开启 Ralph, 会出现二次确认，自动确认后，文件夹会被创建后删除，则该功能成功。
 + ✅ 高风险命令确认，如果上面的测试有弹框，且完成，则该功能正常
 + ✅ 终端超时跳过：使用提示词 "运行命令 npm run dev"，开启 Ralph, 会出现终端卡片，超时后点击跳过，终端会关闭继续任务，则该功能成功。
-+ ✅ 任务完成确认检查：trae 出现"任务完成"， ralph 依旧会发送“继续进行开发、优化或者测试”，则该功能成功。
++ ✅ 任务完成确认检查：trae 出现"任务完成"， ralph 依旧会发送“继续”，则该功能成功。
 
 
 ## 场景管理

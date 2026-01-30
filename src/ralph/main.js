@@ -50,6 +50,8 @@ let lastWorkingAt = 0;
 let lastHandledTaskCount = 0; // 改用 task 数量来追踪进度
 let lastObservedTaskCount = 0;
 
+let skipFallbackTimeout = null;
+
 const detector = new ScenarioDetector();
 
 /**
@@ -62,9 +64,15 @@ function scheduleSkipFallback(timeoutMs = 180000) {
     const startWorkingAt = lastWorkingAt;
     const initialLastTask = getLastAssistantReplyElement(); // 记录初始的最后一条回复元素
     
+    // 清除已存在的定时器
+    if (skipFallbackTimeout) {
+        clearTimeout(skipFallbackTimeout);
+    }
+
     console.log(`⏳ 已启动超时保底计时 (${timeoutMs/1000}秒)...`);
 
-    setTimeout(() => {
+    skipFallbackTimeout = setTimeout(() => {
+      skipFallbackTimeout = null; // 执行后清空引用
       // 检查 Ralph 循环状态
       const stillSameStop = firstStopTime === startFirstStop;
       const noNewAction = lastActionAt === startActionAt;
@@ -436,15 +444,22 @@ function executeCustomAction(scenario, scenarioId, lastMessage) {
         console.log('⏳ 检测到可跳过的终端命令，启动3分钟保底跳过');
         scheduleSkipFallback(180000);
         processedScenarioDuringStop = true;
+    } else if (scenario.handler === 'rapidInteractiveInput') {
+        executeRapidInteractiveInput(scenario);
+        processedScenarioDuringStop = true;
     } else {
         const message = detector.getResponse(scenarioId, { lastMessage });
         console.log(`💡 准备发送: "${message}"`);
-        if (!sentDuringStop) {
+        
+        // 允许重复发送的条件：场景配置了 repeatable: true
+        const allowRepeat = scenario.repeatable === true;
+        
+        if (!sentDuringStop || allowRepeat) {
             const sent = sendTerminalInput(message) || sendMessage(message);
             if (sent) {
                 lastActionAt = Date.now();
-                sentDuringStop = true;
-                console.log('✅ 消息已发送 (停止期间仅发送一次)');
+                sentDuringStop = true; // 仍然标记为 true，但 allowRepeat 会绕过检查
+                console.log(`✅ 消息已发送 ${allowRepeat ? '(重复模式)' : '(停止期间仅发送一次)'}`);
             }
         } else {
             console.log('⏳ 已在本次停止期间发送过消息，跳过重复发送');
@@ -551,6 +566,8 @@ function stopLoop() {
       clearInterval(testInterval);
       testInterval = null;
       window._ralphLoopInterval = null;
+      stopRapidInput(); // 同时停止可能存在的快速输入循环
+      resetState(); // 重置所有状态
       console.log('⏹️ 循环已停止');
       if (window.$ralphToggleBtn) {
         try {
@@ -559,6 +576,74 @@ function stopLoop() {
         } catch(e) {}
       }
     }
+}
+
+/**
+ * 停止快速输入循环
+ */
+function stopRapidInput() {
+    if (window._ralphRapidInputInterval) {
+        clearInterval(window._ralphRapidInputInterval);
+        window._ralphRapidInputInterval = null;
+        console.log('⏹️ 快速交互输入循环已终止');
+    }
+}
+
+/**
+ * 执行快速交互输入（连续回车）
+ * @param {Object} scenario 场景配置
+ */
+function executeRapidInteractiveInput(scenario) {
+    console.log('🚀 启动快速交互输入模式 (检测 xterm-helper-textarea)...');
+    
+    // 防止重复启动
+    if (window._ralphRapidInputInterval) {
+        clearInterval(window._ralphRapidInputInterval);
+    }
+
+    const initialReply = getLastAssistantReplyElement();
+    let count = 0;
+    const maxCount = 60; // 最多尝试 60 次 (约 30 秒)
+    
+    const checkAndSend = () => {
+        // 1. 检查回复是否变化（产生了新回复）
+        const currentReply = getLastAssistantReplyElement();
+        if (currentReply !== initialReply) {
+             console.log('✅ 检测到新回复产生，停止快速输入');
+             stopRapidInput();
+             return;
+        }
+
+        // 2. 检查输入框是否存在
+        const input = document.querySelector('.xterm-helper-textarea');
+        if (!input) {
+            console.log('✅ 交互输入框已消失，停止快速输入');
+            stopRapidInput();
+            return;
+        }
+
+        // 3. 检查最大次数
+        if (count >= maxCount) {
+             console.log('⚠️ 达到最大交互次数限制，停止快速输入');
+             stopRapidInput();
+             return;
+        }
+
+        // 4. 发送回车
+        console.log(`👉 快速输入回车 (${count + 1}/${maxCount})`);
+        sendTerminalInput('\n');
+        count++;
+    };
+
+    // 立即执行一次
+    checkAndSend();
+    
+    // 启动循环 (500ms 间隔)
+    window._ralphRapidInputInterval = setInterval(checkAndSend, 500);
+    
+    // 标记为已发送，避免主循环重复触发
+    sentDuringStop = true;
+    lastActionAt = Date.now();
 }
 
 /**
@@ -576,6 +661,35 @@ function toggleLoop() {
 window.startRalphLoop = startLoop;
 window.stopLoop = stopLoop;
 window.toggleRalphLoop = toggleLoop;
+
+/**
+ * 重置所有全局状态变量
+ */
+function resetState() {
+    checkCount = 0;
+    stableCount = 0;
+    wasWorking = false;
+    hasEverWorked = false;
+    firstStopTime = null;
+    sentDuringStop = false;
+    processedScenarioDuringStop = false;
+    stopHandled = false;
+    lastActionAt = 0;
+    lastWorkingAt = 0;
+    lastHandledTaskCount = 0;
+    lastObservedTaskCount = 0;
+    
+    // 重置检测器状态
+    detector.reset();
+    
+    // 清除保底跳过定时器
+    if (skipFallbackTimeout) {
+        clearTimeout(skipFallbackTimeout);
+        skipFallbackTimeout = null;
+    }
+    
+    console.log('🧹 全局状态已重置');
+}
 
 module.exports = {
     startLoop,

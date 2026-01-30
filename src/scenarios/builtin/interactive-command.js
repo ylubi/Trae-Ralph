@@ -22,7 +22,8 @@ module.exports = {
   name: '交互式命令',
   description: '检测需要用户输入的交互式命令',
   enabled: true,
-  priority: 2,
+  // 优先级必须高于 terminalLongWaitSkip (12)，否则会被超时跳过逻辑抢占
+  priority: 20,
   
   // 检测规则
   detection: {
@@ -40,20 +41,21 @@ module.exports = {
       /yes\/no/i,
       /请确认/,
       /是否继续/
+    ],
+    selectors: [
+      // 检测 xterm 输入助手，意味着终端正在等待输入
+      '.xterm-helper-textarea'
     ]
   },
   
   // 响应策略
   response: {
     action: 'custom',
-    responses: {
-      default: 'y',
-      patterns: [
-        { match: /\(y\/n\)/i, response: 'y' },
-        { match: /\[y\/n\]/i, response: 'y' },
-        { match: /是否继续/, response: '是' },
-        { match: /请确认/, response: '确认' }
-      ]
-    }
-  }
+    handler: 'rapidInteractiveInput',
+    message: '自动交互输入 (连续回车)'
+  },
+
+  // 不再需要 repeatable，因为 handler 内部实现了循环
+  // repeatable: true,
+  // cooldown: 2000
 };
