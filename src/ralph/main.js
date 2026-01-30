@@ -601,6 +601,14 @@ function executeRapidInteractiveInput(scenario) {
         clearInterval(window._ralphRapidInputInterval);
     }
 
+    // 标记为已发送，避免主循环重复触发
+    sentDuringStop = true;
+    lastActionAt = Date.now();
+
+    // 启动保底跳过计时 (复用 terminalLongWaitSkip 的逻辑)
+    console.log('⏳ 检测到交互式命令，同时启动3分钟保底跳过');
+    scheduleSkipFallback(180000);
+
     const initialReply = getLastAssistantReplyElement();
     let count = 0;
     const maxCount = 60; // 最多尝试 60 次 (约 30 秒)
@@ -640,10 +648,6 @@ function executeRapidInteractiveInput(scenario) {
     
     // 启动循环 (500ms 间隔)
     window._ralphRapidInputInterval = setInterval(checkAndSend, 500);
-    
-    // 标记为已发送，避免主循环重复触发
-    sentDuringStop = true;
-    lastActionAt = Date.now();
 }
 
 /**
