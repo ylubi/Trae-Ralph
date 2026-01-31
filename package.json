@@ -14,6 +14,8 @@
     "start:cn": "node src/launcher.js --version china",
     "inject": "node src/injector.js",
     "inject:cn": "node src/injector.js --version china",
+    "rules:inject": "node scripts/inject-rules.js",
+    "rules:clean": "node scripts/clean-rules.js",
     "build": "pkg bin/cli.js -t node16-win-x64,node16-macos-x64,node16-linux-x64 -o dist/trae-ralph",
     "prepublishOnly": "echo 'Ready to publish to npm'"
   },
@@ -54,6 +56,8 @@
     "src/",
     "config/",
     ".trae-templates/",
+    "scripts/",
+    "templates/",
     "README.md",
     "LICENSE",
     "CHANGELOG.md"
