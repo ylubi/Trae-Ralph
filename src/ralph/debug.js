@@ -38,47 +38,89 @@ function applyThemeStyles(btn) {
 }
 
 /**
- * 向界面添加 Ralph 开关按钮
+ * 向界面添加 Ralph 开关按钮 (带重试机制)
  */
 function addToggleButton() {
-  try {
-    const container = document.querySelector('.left-l');
-    if (!container) return;
-    if (container.querySelector('.trae-ralph-toggle-button')) {
-      window.$ralphToggleBtn = container.querySelector('.trae-ralph-toggle-button');
-      return;
-    }
-    const btn = document.createElement('button');
-    btn.className = 'trae-ralph-toggle-button';
-    btn.type = 'button';
-    btn.style.marginLeft = '8px';
-    btn.style.padding = '4px 8px';
-    btn.style.borderRadius = '4px';
-    btn.style.cursor = 'pointer';
-    btn.setAttribute('data-state', window._ralphLoopInterval ? 'running' : 'stopped');
-    btn.textContent = window._ralphLoopInterval ? '停止 Ralph' : '开启 Ralph';
-    applyThemeStyles(btn);
-    btn.addEventListener('click', () => {
-        if (window.toggleRalphLoop) {
-            window.toggleRalphLoop();
-        } else {
-            console.error('toggleRalphLoop not defined');
-        }
-    });
-    container.appendChild(btn);
-    window.$ralphToggleBtn = btn;
-    
-    // 主题变化监听（简单轮询）
-    let lastThemeKey = '';
-    setInterval(() => {
-      const rgb = _detectThemeBaseColor();
-      const key = `${rgb.r},${rgb.g},${rgb.b}`;
-      if (key !== lastThemeKey) {
-        lastThemeKey = key;
-        applyThemeStyles(btn);
+  const tryAdd = () => {
+    try {
+      // 1. 查找容器
+      const container = document.querySelector('.left-l');
+      if (!container) {
+          // 容器未找到，稍后重试
+          return false;
       }
-    }, 2000);
-  } catch(e) {}
+
+      // 2. 检查按钮是否已存在
+      if (container.querySelector('.trae-ralph-toggle-button')) {
+        window.$ralphToggleBtn = container.querySelector('.trae-ralph-toggle-button');
+        return true;
+      }
+
+      // 3. 创建按钮
+      const btn = document.createElement('button');
+      btn.className = 'trae-ralph-toggle-button';
+      btn.type = 'button';
+      // 样式调整：确保可见性和布局
+      btn.style.marginLeft = '8px';
+      btn.style.padding = '4px 8px';
+      btn.style.borderRadius = '4px';
+      btn.style.cursor = 'pointer';
+      btn.style.fontSize = '12px';
+      btn.style.fontWeight = '500';
+      btn.style.zIndex = '9999'; // 确保在最上层
+      
+      btn.setAttribute('data-state', window._ralphLoopInterval ? 'running' : 'stopped');
+      btn.textContent = window._ralphLoopInterval ? '停止 Ralph' : '开启 Ralph';
+      
+      applyThemeStyles(btn);
+      
+      btn.addEventListener('click', (e) => {
+          e.stopPropagation(); // 防止冒泡触发其他点击事件
+          if (window.toggleRalphLoop) {
+              window.toggleRalphLoop();
+          } else {
+              console.error('toggleRalphLoop not defined');
+          }
+      });
+
+      // 4. 插入按钮
+      container.appendChild(btn);
+      window.$ralphToggleBtn = btn;
+      console.log('✅ Ralph 按钮注入成功');
+      
+      // 5. 启动主题监听
+      let lastThemeKey = '';
+      setInterval(() => {
+        const rgb = _detectThemeBaseColor();
+        const key = `${rgb.r},${rgb.g},${rgb.b}`;
+        if (key !== lastThemeKey) {
+          lastThemeKey = key;
+          applyThemeStyles(btn);
+        }
+      }, 2000);
+
+      return true;
+    } catch(e) {
+        console.error('注入按钮失败:', e);
+        return false;
+    }
+  };
+
+  // 初始尝试
+  if (tryAdd()) return;
+
+  // 轮询重试 (最多尝试 30 秒)
+  let attempts = 0;
+  const maxAttempts = 30; // 30 * 1000ms = 30s
+  const interval = setInterval(() => {
+      attempts++;
+      if (tryAdd() || attempts >= maxAttempts) {
+          clearInterval(interval);
+          if (attempts >= maxAttempts) {
+              console.warn('❌ Ralph 按钮注入超时：未找到 .left-l 容器');
+          }
+      }
+  }, 1000);
 }
 
 /**

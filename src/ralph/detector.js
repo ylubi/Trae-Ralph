@@ -186,7 +186,8 @@ class ScenarioDetector {
     checkSelectors(d, id) {
         if (!d.selectors || d.selectors.length === 0) return null;
 
-        const scope = getLastAssistantReplyElement() || getLastAssistantTurnElement();
+        // 使用 TurnElement 而不是 ReplyElement，因为 Tool 卡片可能位于 Reply (ai-agent-task) 的兄弟节点 (ai-agent-task-tool) 中
+        const scope = getLastAssistantTurnElement();
         if (scope) {
             for (const sel of d.selectors) {
                 const foundEl = scope.querySelector(sel);

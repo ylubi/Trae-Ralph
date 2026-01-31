@@ -61,6 +61,7 @@ module.exports = [
     description: '检测到模型思考次数上限，自动点击继续',
     enabled: true,
     priority: 11, // 高优先级，必须处理
+    isConfirm: true, // 标记为确认类操作，允许在停止期间多次触发（直至问题解决）
     group: 'system-recovery', // 分组：系统恢复
     groupCooldown: 30000, // 组冷却 30秒
     cooldown: 30000, // 30秒冷却时间

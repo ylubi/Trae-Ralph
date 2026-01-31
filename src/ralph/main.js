@@ -31,7 +31,8 @@ const {
 const { 
     sendMessage, 
     sendTerminalInput, 
-    clickSkipButton 
+    clickSkipButton,
+    resetContextAndContinue
 } = require('./actions');
 const { ScenarioDetector } = require('./detector');
 
@@ -113,7 +114,10 @@ function scheduleSkipFallback(timeoutMs = 180000) {
         const clicked = clickSkipButton();
         if (clicked) {
           console.log('✅ 保底跳过点击成功');
-        } else {
+        } else if (scenario.handler === 'resetContext') {
+        resetContextAndContinue();
+        processedScenarioDuringStop = true;
+    } else {
           console.log('⚠️ 保底跳过点击失败');
         }
       } else {
@@ -229,7 +233,8 @@ function processStoppedState(currentTaskCount, blocking) {
     
     // 2. 检查是否已经处理过当前数量的任务
     if (lastHandledTaskCount === currentTaskCount) {
-        if (shouldForceRecheck()) {
+        // 如果存在阻断性错误，必须强制重新检测
+        if (shouldForceRecheck() || blocking) {
           lastHandledTaskCount = 0; // 强制重置
           stopHandled = false;
         } else {
@@ -447,6 +452,9 @@ function executeCustomAction(scenario, scenarioId, lastMessage) {
     } else if (scenario.handler === 'rapidInteractiveInput') {
         executeRapidInteractiveInput(scenario);
         processedScenarioDuringStop = true;
+    } else if (scenario.handler === 'resetContext') {
+        resetContextAndContinue();
+        processedScenarioDuringStop = true;
     } else {
         const message = detector.getResponse(scenarioId, { lastMessage });
         console.log(`💡 准备发送: "${message}"`);
@@ -609,14 +617,17 @@ function executeRapidInteractiveInput(scenario) {
     console.log('⏳ 检测到交互式命令，同时启动3分钟保底跳过');
     scheduleSkipFallback(180000);
 
-    const initialReply = getLastAssistantReplyElement();
+    // 使用 TurnElement 而不是 ReplyElement，因为后者可能无法覆盖整个轮次的变化
+    const initialTurn = getLastChatTurnElement(); 
     let count = 0;
+    let missingInputCount = 0; // 输入框丢失计数
     const maxCount = 60; // 最多尝试 60 次 (约 30 秒)
     
     const checkAndSend = () => {
         // 1. 检查回复是否变化（产生了新回复）
-        const currentReply = getLastAssistantReplyElement();
-        if (currentReply !== initialReply) {
+        // 注意：这里检查的是"最后一个轮次"是否发生了变化（即有了新的轮次）
+        const currentTurn = getLastChatTurnElement();
+        if (currentTurn !== initialTurn) {
              console.log('✅ 检测到新回复产生，停止快速输入');
              stopRapidInput();
              return;
@@ -625,10 +636,18 @@ function executeRapidInteractiveInput(scenario) {
         // 2. 检查输入框是否存在
         const input = document.querySelector('.xterm-helper-textarea');
         if (!input) {
-            console.log('✅ 交互输入框已消失，停止快速输入');
-            stopRapidInput();
-            return;
+            missingInputCount++;
+            if (missingInputCount > 3) { // 允许短暂消失 (3次检查 = 1.5秒)
+                console.log('✅ 交互输入框已消失超过1.5秒，停止快速输入');
+                stopRapidInput();
+                return;
+            }
+            console.log(`⏳ 输入框暂时消失 (${missingInputCount}/3)，等待...`);
+            return; // 本次跳过发送，但继续循环
         }
+        
+        // 重置丢失计数
+        missingInputCount = 0;
 
         // 3. 检查最大次数
         if (count >= maxCount) {
@@ -639,7 +658,7 @@ function executeRapidInteractiveInput(scenario) {
 
         // 4. 发送回车
         console.log(`👉 快速输入回车 (${count + 1}/${maxCount})`);
-        sendTerminalInput('\n');
+        sendTerminalInput(''); // 仅发送回车键，不需要字符内容
         count++;
     };
 

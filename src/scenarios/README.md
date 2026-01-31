@@ -102,12 +102,14 @@ scenarios/
 | outputLimitClick           | 输出过长自动点击 | 低     | custom  | “输出过长”提示                | 点击继续                   | 未测 |      |        |      |
 | queueUpAlert               | 排队提醒         | 低     | custom  | 排队提醒提示                  | 记录日志                   | 未测 |      |        |      |
 | systemError                | 系统错误         | 高     | custom  | 系统未知错误提示              | 发送“继续”                 | ✅ |      |        |      |
-| modelLimitReached          | 模型思考上限     | 中     | custom  | 思考次数已达上限              | 点击继续                   | 未测 |      |        |      |
-| taskCompletedConfirmCheck  | 任务完成确认检查 | 中     | custom  | Trae状态显示“任务完成”        | 发送“继续” | ✅ |      |        |      |
+| modelLimitReached          | 模型思考上限     | 中     | custom  | 思考次数已达上限              | 点击继续                   | ✅ |      |        |      |
+| taskCompletedConfirmCheck  | 任务完成确认检查 | 中     | custom  | Trae状态显示“任务完成”        | 发送“继续”                  | ✅ |      |        |      |
+| contextLimitExceeded       | 上下文长度过大   | 高     | custom  | 上下文长度过大提示            | 新建任务->保留->继续       | ✅ |      |        |      |
 
 ## 测试方法
 
 + ✅ 系统错误，如果出现 "模型思考次数已达上限，请输入“继续”后获得更多结果。"，能够自动继续，则表示功能正常。
++ ✅ 上下文长度过大：如果出现 "上下文长度已超过最大限制"，能够自动输入“继续”，则表示功能正常。
 + ✅ 发送按钮禁用继续：点击”开启 Ralph“时，如果发送了信息 ”继续“，则表示功能正常。
 + ✅ 删除文件卡片：新建一个文件，使用提示词”删除 example.txt“，然后开启 Ralph，如果文件被成功删除，则表示功能正常。
 + ✅ 删除确认弹窗：上面如果删除了文件，则该功能也正常。

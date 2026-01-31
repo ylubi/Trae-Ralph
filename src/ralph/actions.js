@@ -224,6 +224,7 @@ function sendTerminalInput(text) {
       data: ch,
       inputType: 'insertText'
     }));
+    input.dispatchEvent(new InputEvent('change', { bubbles: true }));
     fire('keyup', ch, `Key${ch.toUpperCase()}`);
   }
 
@@ -274,8 +275,55 @@ function clickSkipButton() {
   return false;
 }
 
+/**
+ * 重置上下文并继续
+ * 1. 点击“新建任务”
+ * 2. 处理“全部保留”确认弹窗
+ * 3. 等待并输入“继续”
+ */
+async function resetContextAndContinue() {
+    // 1. 点击新建任务按钮
+    const newChatBtn = document.querySelector('.action-label.codicon.codicon-icube-NewChat');
+    if (newChatBtn) {
+        console.log('🖱️ 点击新建任务按钮...');
+        newChatBtn.click();
+        
+        // 2. 等待弹窗检查 (短时间等待，因为弹窗可能很快出现)
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // 检查是否有二次确认弹窗
+        const keepAllBtn = Array.from(document.querySelectorAll('.popup-button.primary'))
+            .find(btn => (btn.textContent || '').trim() === '全部保留');
+            
+        if (keepAllBtn) {
+            console.log('🖱️ 检测到确认弹窗，点击“全部保留”...');
+            keepAllBtn.click();
+        } else {
+            console.log('ℹ️ 未检测到确认弹窗，直接继续');
+        }
+        
+        // 3. 等待新会话初始化 (10秒)
+        console.log('⏳ 等待 10 秒以初始化新会话...');
+        await new Promise(resolve => setTimeout(resolve, 10000));
+        
+        // 4. 发送继续
+        console.log('💡 发送“继续”...');
+        const success = sendMessage('继续');
+        if (success) {
+            console.log('✅ “继续”发送成功');
+        } else {
+            console.warn('⚠️ “继续”发送失败');
+        }
+        return true;
+    } else {
+        console.error('❌ 未找到新建任务按钮 (.codicon-icube-NewChat)');
+        return false;
+    }
+}
+
 module.exports = {
     sendMessage,
     sendTerminalInput,
-    clickSkipButton
+    clickSkipButton,
+    resetContextAndContinue
 };

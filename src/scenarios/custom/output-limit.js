@@ -20,7 +20,8 @@ module.exports = {
   name: '输出过长自动点击',
   description: '检测到输出过长提示卡片时，自动点击继续按钮',
   enabled: true,
-  priority: 100, // 极高优先级，确保优先于其他场景
+  priority: 21, // 高优先级，但低于系统严重错误
+  isConfirm: true, // 标记为确认类操作，允许在停止期间多次触发
   thinkingTime: 0, // 无需等待，立即触发
   
   detection: {
