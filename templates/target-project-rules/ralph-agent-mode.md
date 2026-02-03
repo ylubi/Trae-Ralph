@@ -45,8 +45,11 @@
 一个任务 (Task) 只有在满足以下**所有**条件时，才能被标记为 `[x]`：
 1. 代码已提交。
 2. **自动化测试通过**: 运行 `npm run test:unit` 和 `npm run test:e2e` 无报错。
-3. **MCP 交互验收通过**: 使用 Chrome DevTools 或 Database MCP 验证数据和 UI，并在 `05-test-plan.md` 中打钩。
-4. **无控制台错误**: 浏览器 Console 中没有红色的 Error 日志。
+3. **MCP 交互验收通过**: 使用 Chrome DevTools 或 Database MCP 验证数据和 UI。
+4. **状态文件已更新**:
+   - 你必须使用工具修改 `05-test-plan.md`，将通过的测试项打钩 `[x]`。
+   - 只有 `05-test-plan.md` 中的对应测试项全是 `[x]`，`04-ralph-tasks.md` 中的功能项才能打 `[x]`。
+5. **无控制台错误**: 浏览器 Console 中没有红色的 Error 日志。
 
 ### 6. 经验学习 (Continuous Learning)
 - **启动前**: 必须读取 `docs/planning/<当前迭代>/06-learnings.md`，了解本项目的特殊约定和历史教训。
