@@ -23,7 +23,7 @@ if (!fs.existsSync(rulesDir)) {
 }
 
 // 2. 复制规则文件
-const filesToCopy = ['ralph-agent-mode.md', 'ralph-task-management.md'];
+const filesToCopy = ['ralph-agent-mode.md', 'ralph-task-management.md', 'ralph-planning-mode.md'];
 filesToCopy.forEach(file => {
   const src = path.join(templatesDir, file);
   const dest = path.join(rulesDir, file);
@@ -36,6 +36,28 @@ filesToCopy.forEach(file => {
   }
 });
 
+// 2.1 复制规划模板资产 (Assets)
+const assetsDir = path.join(absoluteTargetDir, '.trae/ralph-assets/templates');
+if (!fs.existsSync(assetsDir)) {
+  fs.mkdirSync(assetsDir, { recursive: true });
+  console.log('✅ 创建目录: .trae/ralph-assets/templates');
+}
+
+const planningTemplatesDir = path.resolve(__dirname, '../templates/planning');
+if (fs.existsSync(planningTemplatesDir)) {
+  const templateFiles = fs.readdirSync(planningTemplatesDir);
+  templateFiles.forEach(file => {
+    if (path.extname(file) === '.md') {
+      const src = path.join(planningTemplatesDir, file);
+      const dest = path.join(assetsDir, file);
+      fs.copyFileSync(src, dest);
+    }
+  });
+  console.log(`✅ 已同步 ${templateFiles.filter(f => path.extname(f) === '.md').length} 个规划模板资产`);
+} else {
+  console.warn('⚠️ 未找到规划模板目录: templates/planning');
+}
+
 // 3. 更新 project.md
 const projectMdPath = path.join(rulesDir, 'project.md');
 let content = '';
@@ -46,16 +68,18 @@ if (fs.existsSync(projectMdPath)) {
   console.log('ℹ️ project.md 不存在，将创建新文件');
 }
 
+// 读取 Ralph 入口规则模板
+const ralphEntryRulesPath = path.join(templatesDir, 'ralph-entry-rules.md');
+let ralphEntryRulesContent = '';
+if (fs.existsSync(ralphEntryRulesPath)) {
+  ralphEntryRulesContent = fs.readFileSync(ralphEntryRulesPath, 'utf8');
+} else {
+  console.error('❌ 严重错误: 无法找到 ralph-entry-rules.md 模板');
+  process.exit(1);
+}
+
 const injectionContent = `<!-- start Ralph Rules  --> 
-# 项目开发规则 
-
-## 🤖 Ralph 自主模式 
-本项目已启用 Ralph 自主模式，Agent 必须严格遵守以下规范： 
-1. **核心行为**: 遵循 [ralph-agent-mode.md](./ralph-agent-mode.md) 中的角色定义和状态报告要求。 
-2. **任务管理**: 维护 [ralph-task-management.md](./ralph-task-management.md) 定义的 \`RALPH_STATE.md\`。 
-
-## 其他规则 
-- 使用中文回复。 
+${ralphEntryRulesContent}
 <!-- end Ralph Rules  -->`;
 
 const startTag = '<!-- start Ralph Rules  -->';

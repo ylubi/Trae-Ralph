@@ -21,7 +21,7 @@ if (!fs.existsSync(rulesDir)) {
 }
 
 // 1. 删除规则文件
-const filesToRemove = ['ralph-agent-mode.md', 'ralph-task-management.md'];
+const filesToRemove = ['ralph-agent-mode.md', 'ralph-task-management.md', 'ralph-planning-mode.md'];
 filesToRemove.forEach(file => {
   const filePath = path.join(rulesDir, file);
   if (fs.existsSync(filePath)) {

@@ -1,51 +1,54 @@
 # Ralph 任务管理规范
 
-为了支持 Ralph Loop 的长时间自主运行，项目中的任务必须按照以下规范进行管理。这将确保即使在上下文重置或系统重启后，Agent 也能准确恢复工作。
+为了支持 Ralph Loop 的长时间自主运行，以及多轮次需求的迭代开发，项目采用 **“指针-实例”** 的任务管理模型。
 
-## 1. 状态文件 (State File)
-项目根目录必须包含一个名为 `RALPH_STATE.md` 的文件。
+## 1. 任务状态架构
 
-### 格式模板
+### 1.1 指针文件 (Pointer)
+项目根目录必须包含一个名为 `RALPH_STATE.md` 的文件。它不再存储具体任务，而是作为 **“当前活跃迭代”** 的指针。
+
+> **初始化规则**: 如果该文件不存在，Agent 必须在首次运行时根据下方的模板创建它。如果存在旧版格式文件，请将其重命名备份后再创建新版。
+
+**RALPH_STATE.md 模板**:
 ```markdown
-# Ralph 任务状态
+# Ralph 状态指针
 
-## 🎯 总体目标
-(在此描述当前的大目标，例如：重构整个认证模块)
+## 📍 当前活跃上下文 (Active Context)
+- **迭代名称**: feature-auth
+- **规划路径**: docs/planning/feature-auth/
+- **任务文件**: docs/planning/feature-auth/04-ralph-tasks.md
+- **经验文件**: docs/planning/feature-auth/06-learnings.md
+- **上次更新**: 2023-10-27 14:30
 
-## 📋 任务清单
-- [x] **Step 1**: 初始化环境 (完成于 2023-10-27 10:00)
-- [ ] **Step 2**: 迁移 User 表
-  - [ ] 编写 SQL 迁移脚本
-  - [ ] 运行迁移测试
-- [ ] **Step 3**: 更新 API 接口
-- [ ] **Step 4**: 更新前端调用
-
-## 📝 上下文备忘录
-(在此记录关键信息，避免因上下文丢失而遗忘)
-- 数据库连接字符串在 .env.test 中
-- 使用 Jest 进行测试，命令是 `npm test`
-- 注意：User 表新增了 `sso_id` 字段
-
-## 🚫 遇到的问题
-- (空)
+## 📝 全局备忘录 (Global Context)
+(此区域已弃用，请使用 `docs/planning/<当前迭代>/06-learnings.md` 记录经验)
+- 参见: [06-learnings.md](docs/planning/feature-auth/06-learnings.md)
 ```
+
+### 1.2 实例文件 (Instance)
+- **任务清单**: `docs/planning/<迭代>/04-ralph-tasks.md`
+- **经验日记**: `docs/planning/<迭代>/06-learnings.md`
 
 ## 2. Agent 操作规范
 
-### 2.1 启动时
-- **读取** `RALPH_STATE.md`。
-- 确认最后一个打钩的任务。
-- 读取 "上下文备忘录"。
+### 2.1 启动/恢复时
+1.  **读取指针**: 打开根目录 `RALPH_STATE.md`。
+2.  **复习经验**: 读取指针指向的 `06-learnings.md`，避免踩坑。
+3.  **加载任务**: 读取指针指向的 `04-ralph-tasks.md`。
+4.  **恢复状态**: 检查该任务文件中最后一个打钩的项 `[x]`，从下一项开始工作。
 
-### 2.2 执行中
-- 每完成一个子任务，**立即** 更新 `RALPH_STATE.md` 中的复选框。
-- 如果发现新信息（如新的依赖关系），更新 "上下文备忘录"。
+### 2.2 切换迭代时 (Context Switching)
+当用户提出新需求，或者当前迭代全部完成时：
+1.  **归档旧状态**: 确保当前 `04-ralph-tasks.md` 全部标记完成。
+2.  **继承经验**: 将旧迭代的 `06-learnings.md` 复制到新迭代目录，作为起点。
+3.  **更新指针**: 修改 `RALPH_STATE.md` 指向新目录。
 
-### 2.3 结束时
-- 确保 `RALPH_STATE.md` 反映了最终状态。
-- 如果遇到阻碍，在 "遇到的问题" 节中详细描述，并将 XML 状态设为 `ERROR` 或 `WAITING_USER`。
+### 2.3 执行中
+- **原子更新**: 每完成一个子任务，**立即**使用工具更新 `04-ralph-tasks.md` 中的复选框。
+  - ❌ 错误做法：在心里默认它完成了，或者只在 XML 状态里报告。
+  - ✅ 正确做法：调用 `SearchReplace` 将 `- [ ] 编写 User 模型` 改为 `- [x] 编写 User 模型`。
+- **经验沉淀**: 发现新坑，**立即**更新 `06-learnings.md`。
 
 ## 3. 提交规范 (Git Integration)
-- 建议每完成一个 Step 就进行一次 Git Commit。
-- Commit Message 格式: `feat(ralph): [Step 2] 迁移 User 表`。
-- 这样即使 `RALPH_STATE.md` 损坏，也可以通过 Git 历史恢复进度。
+- 提交时应包含迭代前缀。
+- 例如: `feat(auth): [Step 2] 实现登录接口` (对应 feature-auth 迭代)。

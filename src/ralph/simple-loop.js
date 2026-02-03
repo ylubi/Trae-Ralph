@@ -198,7 +198,7 @@ function startTest() {
         console.log('✅ 检测到 AI 已停止');
         console.log('💡 准备发送"继续"...');
         
-        if (sendMessage('继续')) {
+        if (sendMessage('查看 Ralph 开发进程 \n\n 继续')) {
           console.log('✅ 已发送"继续"消息');
           console.log('⏳ 等待 AI 恢复工作...');
           

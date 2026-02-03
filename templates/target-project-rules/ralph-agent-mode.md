@@ -10,6 +10,10 @@
 - **必须** 将任务分解为微小的、可验证的步骤（Step）。
 - 每个步骤完成后，**必须** 进行验证（运行测试、检查文件、执行命令）。
 - **禁止** 在没有验证上一步结果的情况下进行下一步。
+- **强制更新任务状态**:
+  - 每当你完成一个小步骤（Step），**必须立即**使用 `SearchReplace` 或 `Write` 工具修改 `docs/planning/<当前迭代>/04-ralph-tasks.md`，将对应的 `[ ]` 改为 `[x]`。
+  - **不要** 等到整个功能做完再批量打钩。Trae 不会自动帮你打钩，**你必须手动操作文件**。
+  - 如果你发现自己连续输出了 3 次回复却一次都没有修改过任务文件，请立即停下来反思：你是否正在失去状态同步？
 
 ### 2. 状态报告 (Status Reporting)
 在每次回复的结尾，你**必须**使用以下 XML 格式明确报告当前状态。Ralph 系统会解析此状态以决定下一步操作。
@@ -37,25 +41,39 @@
   4. 尝试修复。
   5. 如果 3 次尝试失败，将状态设为 `ERROR` 并请求人工介入。
 
-### 4. 上下文管理 (Context Management)
-- 你是在一个可能被重置的上下文中运行。**不要** 依赖之前的对话历史来保存关键信息。
-- **必须** 将重要信息（如当前计划、已完成的步骤）写入项目中的 `TODO.md` 或 `RALPH_STATE.md` 文件。
-- 每次开始工作前，先读取 `RALPH_STATE.md` 确认进度。
+### 4. 完成的定义 (Definition of Done)
+一个任务 (Task) 只有在满足以下**所有**条件时，才能被标记为 `[x]`：
+1. 代码已提交。
+2. **自动化测试通过**: 运行 `npm run test:unit` 和 `npm run test:e2e` 无报错。
+3. **MCP 交互验收通过**: 使用 Chrome DevTools 或 Database MCP 验证数据和 UI，并在 `05-test-plan.md` 中打钩。
+4. **无控制台错误**: 浏览器 Console 中没有红色的 Error 日志。
+
+### 6. 经验学习 (Continuous Learning)
+- **启动前**: 必须读取 `docs/planning/<当前迭代>/06-learnings.md`，了解本项目的特殊约定和历史教训。
+- **结束前**: 如果你在本次任务中解决了棘手的环境问题或发现了新的代码模式，必须将其更新到 `06-learnings.md` 中。
+- **目标**: 确保下一个接手的 Agent (可能是未来的你自己) 不会重蹈覆辙。
+
+### 7. 命令执行规范 (Command Execution)
+- **禁止交互式命令**: 严禁执行需要用户键盘输入的命令（如 `npm init` (无参), `python` (进入REPL), `top`）。
+  - **正确做法**: 使用非交互式参数，如 `npm init -y`。
+  - **正确做法**: 如果需要创建文件，直接使用 `Write` 工具，而不是 `cat > file`。
+- **长耗时任务**: 对于启动服务器等不退出的命令，必须设置 `blocking: false`。
 
 ## 工作流示例 (Workflow Example)
 
 **用户**: "实现用户登录功能"
 
 **Ralph Agent**:
-1. 创建 `RALPH_STATE.md`，列出计划：
-   - [ ] 设计数据库 Schema
-   - [ ] 创建 User Model
-   - [ ] 实现 API 接口
-   - [ ] 编写测试
-2. 执行第一步（设计 Schema）。
-3. 验证 Schema 文件存在。
-4. 更新 `RALPH_STATE.md`。
-5. 输出状态：
+1. 读取 `RALPH_STATE.md` 确定当前任务文件。
+2. 读取 `docs/planning/<当前迭代>/06-learnings.md` 复习项目约定。
+3. 读取任务文件 `docs/planning/<当前迭代>/04-ralph-tasks.md`，找到：
+   - [x] 设计数据库 Schema
+   - [ ] 创建 User Model (<- Start Here)
+4. 执行任务（创建 User Model）。
+5. 验证代码。
+6. (可选) 发现数据库字段命名坑，更新 `06-learnings.md`。
+7. 更新 `docs/planning/feature-auth/04-ralph-tasks.md`，打钩 `[x]`。
+8. 输出状态：
    ```xml
    <ralph-status>
      <state>WORKING</state>

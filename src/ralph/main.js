@@ -146,7 +146,7 @@ function sendContinueOrClickExisting() {
     // 0. 检查发送按钮是否处于停止状态 (表示 AI 正在工作)
     // 注意：这里需要通过 DOM 查找，因为 dom.js 中的 isSendButtonEnabled 和 findSendButton 是局部的
     // 但我们可以直接调用 actions.js 中的 sendMessage，它内部有检查
-    return sendMessage('继续');
+    return sendMessage('查看 Ralph 开发进程 \n\n 继续');
 }
 
 // ============================================
