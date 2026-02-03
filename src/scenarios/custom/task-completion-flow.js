@@ -11,7 +11,7 @@ module.exports = {
   name: '任务完成确认检查',
   description: '当任务显示完成后，自动发送指令检查项目完成情况',
   enabled: true,
-  priority: 10, // 普通优先级
+  priority: 25, // 高优先级，确保高于 interactiveCommand (20)
   cooldown: 60000, // 60秒冷却，防止短时间内重复触发
   isConfirm: true, // 标记为确认类操作，允许在同一停止周期内触发（配合cooldown使用）
   

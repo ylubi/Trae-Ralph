@@ -76,7 +76,7 @@ scenarios/
 - system-alerts.js：queueUpAlert｜排队提醒
 - system-alerts.js：systemError｜系统错误
 - system-alerts.js：modelLimitReached｜模型思考上限
-- task-completion-flow.js：taskCompletedCheck｜任务完成检查
+- task-completion-flow.js：taskCompletedConfirmCheck｜任务完成确认检查
 
 ## 测试记录模板（可直接填写）
 
