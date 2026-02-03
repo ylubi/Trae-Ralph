@@ -246,30 +246,34 @@ function sendTerminalInput(text) {
  */
 function clickSkipButton() {
   // 优先在最后一个 ai-agent-task 中查找，以确保操作的是最新回复
-  let card = null;
+  let container = null;
   const lastTask = getLastAssistantReplyElement();
   
   if (lastTask) {
-      const cards = lastTask.querySelectorAll('.icd-run-command-card-v2');
-      if (cards.length > 0) {
-          card = cards[cards.length - 1];
-      }
+      container = lastTask;
+  } else {
+      container = document;
   }
   
-  // 降级：如果找不到 task 或 task 中没 card，尝试全局查找（保持兼容）
-  if (!card) {
-      const cards = document.querySelectorAll('.icd-run-command-card-v2');
-      if (cards.length > 0) {
-          card = cards[cards.length - 1];
-      }
-  }
+  // 查找所有可能的卡片容器 (兼容 v2 和 v2-cwd)
+  const cards = Array.from(container.querySelectorAll('.icd-run-command-card-v2, .icd-run-command-card-v2-cwd'));
+  const card = cards.length > 0 ? cards[cards.length - 1] : null;
 
   if (card) {
-      const skipBtn = card.querySelector('.icd-run-command-card-v2-actions-btn-secondary');
-      if (skipBtn && (skipBtn.textContent || '').includes('跳过')) {
-          skipBtn.click();
-          console.log('✅ 已点击跳过按钮');
-          return true;
+      const selectors = [
+          '.icd-btn-tertiary', // 新版/当前 (v2-cwd)
+          '.icd-run-command-card-v2-actions-btn-secondary', // 旧版
+          'button' // 兜底
+      ];
+      
+      for (const sel of selectors) {
+          const btns = Array.from(card.querySelectorAll(sel));
+          const target = btns.find(btn => (btn.textContent || '').includes('跳过'));
+          if (target) {
+              target.click();
+              console.log(`✅ 已点击跳过按钮 (selector: ${sel})`);
+              return true;
+          }
       }
   }
   return false;

@@ -102,7 +102,8 @@ scenarios/
 | outputLimitClick           | 输出过长自动点击 | 低     | custom  | “输出过长”提示                | 点击继续                   | 未测 |      |        |      |
 | queueUpAlert               | 排队提醒         | 低     | custom  | 排队提醒提示                  | 记录日志                   | 未测 |      |        |      |
 | systemError                | 系统错误         | 高     | custom  | 系统未知错误提示              | 发送“继续”                 | ✅ |      |        |      |
-| modelLimitReached          | 模型思考上限     | 中     | custom  | 思考次数已达上限              | 点击继续                   | ✅ |      |        |      |
+| serviceException           | 服务异常         | 高     | custom  | 服务异常 (-1) 提示            | 点击“重试”                 | ✅ |      |        |      |
+| modelLimitReached          | 模型思考上限     | 高     | custom  | 模型思考次数已达上限          | 点击“继续”                 | 未测 |      |        |      |
 | taskCompletedConfirmCheck  | 任务完成确认检查 | 中     | custom  | Trae状态显示“任务完成”        | 发送“继续”                  | ✅ |      |        |      |
 | contextLimitExceeded       | 上下文长度过大   | 高     | custom  | 上下文长度过大提示            | 新建任务->保留->继续       | ✅ |      |        |      |
 

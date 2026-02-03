@@ -86,11 +86,12 @@ module.exports = [
     detection: {
       // 必须显式配置使用 lastTurnOnly，确保检测的是最新回复
       lastTurnOnly: true,
-      // 不再依赖文本检测，直接检测是否存在终端卡片且包含跳过按钮
-      selectors: [
-          // 必须同时满足：是 icd-run-command-card-v2 且包含跳过按钮
-          '.icd-run-command-card-v2 .icd-btn-tertiary'
-      ]
+      // 使用更鲁棒的文本检测，兼容不同的 DOM 结构
+      textCheck: {
+          selector: '.icd-run-command-card-v2 button, .icd-run-command-card-v2-cwd button, button.icd-btn-tertiary',
+          text: '跳过',
+          lastTurnOnly: true
+      }
     },
     response: {
       action: 'custom',

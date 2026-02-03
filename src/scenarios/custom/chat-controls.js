@@ -31,11 +31,14 @@ module.exports = [
   {
     id: 'agentWorking',
     name: 'Agent正在工作',
-    description: '检测到停止按钮，表示Agent正在生成回复或执行任务',
+    description: '检测到停止按钮或加载状态，表示Agent正在生成回复或执行任务',
     enabled: true,
-    priority: 0,
+    priority: 22, // 必须高于 sendButtonDisabledContinue (20)，防止在正常生成/思考时误触发保底
     detection: {
-      selectors: ['.codicon-stop-circle']
+      selectors: [
+        '.codicon-stop-circle',
+        '.icd-loading'
+      ]
     },
     response: {
       action: 'log',
@@ -49,9 +52,10 @@ module.exports = [
     enabled: true,
     priority: 5, // 中低优先级，仅作为状态指示和保底措施
     requiresActiveHistory: true, // 需要有历史工作记录，防止新开窗口误触发
+    cooldown: 60000, // 60秒冷却，防止短时间内重复触发
     detection: {
       selectors: [
-        '.chat-input-v2-send-button:not(.disabled) .codicon-icube-ArrowUp'
+        '.chat-input-v2-send-button:not(.disabled):not([disabled])'
       ]
     },
     response: {
@@ -74,7 +78,8 @@ module.exports = [
         '.chat-input-wrapper .chat-input-v2-send-button.disabled',
         '.chat-input-wrapper .chat-input-v2-send-button[disabled]',
         '.chat-input-v2-send-button.disabled',
-        '.chat-input-v2-send-button[disabled]'
+        '.chat-input-v2-send-button[disabled]',
+        '.chat-input-v2-send-button[aria-disabled="true"]'
       ]
     },
     response: {

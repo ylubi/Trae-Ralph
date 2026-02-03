@@ -56,6 +56,30 @@ module.exports = [
     }
   },
   {
+    id: 'serviceException',
+    name: '服务异常',
+    description: '检测服务异常错误，自动点击重试',
+    enabled: true,
+    priority: 25, // 高优先级
+    group: 'system-recovery',
+    groupCooldown: 30000,
+    cooldown: 30000,
+    detection: {
+      textCheck: {
+        selector: '.agent-error-wrap .icube-alert-msg',
+        pattern: /(服务异常|Service Exception)/,
+        lastTurnOnly: true
+      }
+    },
+    response: {
+      action: 'click',
+      // 根据 DOM 分析，按钮可能是兄弟元素或父级容器中的按钮
+      // 这里使用更宽泛的选择器来确保命中
+      target: '.agent-error-wrap button, .agent-error-wrap [role="button"], .agent-error-wrap .icube-alert-button-action, .icube-alert-action',
+      matchText: '重试'
+    }
+  },
+  {
     id: 'modelLimitReached',
     name: '模型思考上限',
     description: '检测到模型思考次数上限，自动点击继续',
