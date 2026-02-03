@@ -17,7 +17,9 @@
 - **CI/CD**: [GitHub Actions]
 
 ### 1.4 质量保障 (QA Stack)
-- **单元测试**: [如 Vitest / Jest]
+- **后端单元测试**: [如 Vitest / Jest]
+- **前端组件测试**: [如 React Testing Library + Vitest]
+    - 目标: 覆盖所有页面和交互组件
 - **E2E 测试**: [Playwright (推荐) / Cypress]
 - **MCP 工具**: [Chrome DevTools MCP / SQLite MCP]
 
@@ -25,12 +27,14 @@
 ```
 /
 ├── src/
-│   ├── components/  # UI 组件
+│   ├── components/  # UI 组件 (需包含 *.test.tsx)
 │   ├── pages/       # 页面
 │   ├── services/    # API 调用
 │   └── utils/       # 工具函数
 ├── docs/            # 文档
 └── tests/           # 测试用例
+    ├── e2e/         # 端到端测试
+    └── integration/ # 集成测试
 ```
 
 ## 3. 数据模型 (Data Model)

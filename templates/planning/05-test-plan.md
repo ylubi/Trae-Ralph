@@ -3,11 +3,18 @@
 ## 1. 自动化测试门禁 (Automated Gates)
 > **强制规则**: 此部分必须由 CI/CD 或本地脚本自动执行。红灯 (Fail) 即视为任务未完成。
 
-### 1.1 单元/集成测试 (Unit & Integration)
-- [ ] **Core Logic**: 运行 `npm run test:unit`，覆盖率需 > 80%。
-- [ ] **API Tests**: 运行 `npm run test:api`，验证所有接口的 200/400/500 响应。
+### 1.1 后端/逻辑测试 (Backend & Logic)
+- [ ] **Unit Tests**: 运行 `npm run test:unit`，验证核心业务逻辑、工具函数，覆盖率需 > 80%。
+- [ ] **API Tests**: 运行 `npm run test:api`，验证所有接口的 200/400/500 响应及权限控制。
 
-### 1.2 端到端测试 (E2E)
+### 1.2 前端功能测试 (Frontend Functional)
+- [ ] **Component Tests (覆盖率: 高)**: 运行 `npm run test:component` (Vitest/Jest + Testing Library)。
+    - **页面级 (Page Coverage)**: 必须为每个页面路由 (Route) 编写测试，确保页面能正常渲染且无崩溃。
+    - **交互级 (Interaction Coverage)**: 必须测试所有用户可交互元素（按钮、表单、弹窗），验证点击、输入、提交行为。
+    - **状态级 (State Coverage)**: 必须验证 Loading、Error、Empty、Success 等各种UI状态。
+- [ ] **Hooks/Utils**: 验证自定义 Hooks 和前端工具函数。
+
+### 1.3 端到端测试 (E2E)
 - [ ] **关键路径**: 运行 `npm run test:e2e` (Playwright/Cypress)。
     - Case 1: 用户登录 -> 跳转 Dashboard
     - Case 2: 完整下单流程

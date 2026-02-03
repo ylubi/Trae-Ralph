@@ -43,7 +43,10 @@
 ### 4. 完成的定义 (Definition of Done)
 一个任务 (Task) 只有在满足以下**所有**条件时，才能被标记为 `[x]`：
 1. 代码已提交。
-2. **自动化测试通过**: 运行 `npm run test:unit` 和 `npm run test:e2e` 无报错。
+2.46→2. **自动化测试通过**: 
+   - **后端**: 运行 `npm run test:unit` (逻辑) 和 `npm run test:api` (接口) 无报错。
+   - **前端**: 运行 `npm run test:component` (组件交互) 和 `npm run test:e2e` (全链路) 无报错。
+   - **全覆盖原则**: 前端测试必须覆盖所有页面 (Pages) 和所有核心功能交互。严禁仅靠 E2E 覆盖前端逻辑，**必须**编写组件级单元测试。
 3. **MCP 交互验收通过**: 使用 Chrome DevTools 或 Database MCP 验证数据和 UI。
 4. **状态文件已更新**:
    - 你必须使用工具修改 `05-test-plan.md`，将通过的测试项打钩 `[x]`。

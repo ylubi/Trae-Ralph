@@ -105,4 +105,37 @@ if (regex.test(content)) {
 }
 
 fs.writeFileSync(projectMdPath, content, 'utf8');
+
+// 4. 检查/迁移 RALPH_STATE.md
+const ralphStatePath = path.join(absoluteTargetDir, 'RALPH_STATE.md');
+const ralphStateTemplate = `# Ralph 状态指针
+
+## 📍 当前活跃上下文 (Active Context)
+- **迭代名称**: [Idle]
+- **规划路径**: [None]
+- **任务文件**: [None]
+- **经验文件**: [None]
+- **上次更新**: ${new Date().toISOString()}
+
+## 📝 全局备忘录 (Global Context)
+- 暂无 (请查看各迭代目录下的 06-learnings.md)
+`;
+
+if (fs.existsSync(ralphStatePath)) {
+  const currentContent = fs.readFileSync(ralphStatePath, 'utf8');
+  // 简单判断是否为新版格式 (检查关键标记)
+  if (!currentContent.includes('Active Context') && !currentContent.includes('当前活跃上下文')) {
+    console.log('⚠️ 检测到旧版 RALPH_STATE.md，正在迁移...');
+    const backupPath = path.join(absoluteTargetDir, 'RALPH_STATE.bak.md');
+    fs.renameSync(ralphStatePath, backupPath);
+    fs.writeFileSync(ralphStatePath, ralphStateTemplate, 'utf8');
+    console.log(`✅ 已创建新版 RALPH_STATE.md (旧版已备份为 ${path.basename(backupPath)})`);
+  } else {
+    console.log('✅ RALPH_STATE.md 格式正确');
+  }
+} else {
+  fs.writeFileSync(ralphStatePath, ralphStateTemplate, 'utf8');
+  console.log('✅ 已初始化 RALPH_STATE.md');
+}
+
 console.log('✨ 注入完成！');
