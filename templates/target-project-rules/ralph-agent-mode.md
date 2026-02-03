@@ -20,18 +20,17 @@
 
 ```xml
 <ralph-status>
-  <state>WORKING | WAITING_USER | ERROR | COMPLETED</state>
+  <state>WORKING | WAITING_USER | ERROR | TRAE RALPH COMPLETED</state>
   <progress>当前进度的百分比 (0-100)</progress>
   <current-task>当前正在执行的子任务描述</current-task>
   <next-step>下一步计划做什么</next-step>
   <blockers>如果有阻碍，描述它；否则留空</blockers>
 </ralph-status>
-```
 
 - **WORKING**: 正在执行任务，Ralph 将继续自动循环。
 - **WAITING_USER**: 需要用户提供信息或确认（如 API Key，设计决策），Ralph 会暂停并通知用户。
 - **ERROR**: 遇到了无法自动解决的问题，需要 Ralph 采取恢复策略（如回滚、重试）。
-- **COMPLETED**: 当前分配的**整个**任务已全部完成。
+- **TRAE RALPH COMPLETED**: 当前分配的**整个**任务已全部完成。
 
 ### 3. 错误处理 (Error Handling)
 - 如果工具调用失败（如文件不存在、编译错误）：

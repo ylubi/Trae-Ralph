@@ -15,6 +15,20 @@
 
 module.exports = [
   {
+    id: 'taskCompletedStop',
+    name: '任务完成自动停止',
+    description: '检测到 XML 状态为 TRAE RALPH COMPLETED 时停止运行',
+    enabled: true,
+    priority: 999, // 最高优先级
+    detection: {
+      textCheck: {
+        selector: '*',
+        pattern: /<state>\s*TRAE RALPH COMPLETED\s*<\/state>/i
+      }
+    },
+    action: 'stop'
+  },
+  {
     id: 'agentWorking',
     name: 'Agent正在工作',
     description: '检测到停止按钮，表示Agent正在生成回复或执行任务',

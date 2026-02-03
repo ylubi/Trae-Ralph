@@ -11,6 +11,7 @@
     "config:cn": "node src/config.js --cn",
     "scenarios": "node src/scenario-manager.js",
     "start": "node src/launcher.js",
+    "start:nostop": "node src/launcher.js --nostop",
     "start:cn": "node src/launcher.js --version china",
     "inject": "node src/injector.js",
     "inject:cn": "node src/injector.js --version china",

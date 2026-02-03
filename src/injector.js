@@ -144,11 +144,15 @@ async function injectScript() {
     // 解析命令行参数
     const args = process.argv.slice(2);
     let targetVersion = null;
+    let noStopMode = false;
     
     for (let i = 0; i < args.length; i++) {
         if (args[i] === '--version' && args[i + 1]) {
             targetVersion = args[i + 1];
-            break;
+            i++;
+        }
+        if (args[i] === '--nostop') {
+            noStopMode = true;
         }
     }
     
@@ -159,9 +163,13 @@ async function injectScript() {
     CONFIG.traePath = traeConfig.path;
     CONFIG.checkInterval = traeConfig.checkInterval;
     CONFIG.stableCount = traeConfig.stableCount;
+    CONFIG.noStopMode = noStopMode;
     
     const versionName = traeConfig.version === 'international' ? '国际版 (Trae)' : '国内版 (Trae CN)';
     log(`📍 使用版本: ${versionName}`, 'blue');
+    if (noStopMode) {
+        log(`📍 模式: NoStop (忽略完成信号)`, 'magenta');
+    }
     log(`📍 调试端口: ${traeConfig.port}`, 'blue');
     log('');
     
@@ -199,7 +207,8 @@ async function injectScript() {
             checkInterval: CONFIG.checkInterval,
             stableCount: CONFIG.stableCount,
             scenarios: scenariosConfig,
-            selectors: selectorsScript
+            selectors: selectorsScript,
+            noStopMode: CONFIG.noStopMode
         });
         
         // 注入 Ralph Loop

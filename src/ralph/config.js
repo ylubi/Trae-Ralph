@@ -33,7 +33,8 @@ const CONFIG = {
   stableCount: 3,
   scenarios: SCENARIOS,
   chatHistoryTurns: 6,
-  chatHistoryCharLimit: 4000
+  chatHistoryCharLimit: 4000,
+  noStopMode: false
 };
 
 // 注入选择器定义（会被 launcher/injector 替换）

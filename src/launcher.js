@@ -159,11 +159,15 @@ async function startTrae() {
     // 解析命令行参数
     const args = process.argv.slice(2);
     let targetVersion = null;
+    let noStopMode = false;
     
     for (let i = 0; i < args.length; i++) {
         if (args[i] === '--version' && args[i + 1]) {
             targetVersion = args[i + 1];
-            break;
+            i++; // skip next
+        }
+        if (args[i] === '--nostop') {
+            noStopMode = true;
         }
     }
     
@@ -175,9 +179,13 @@ async function startTrae() {
     CONFIG.checkInterval = traeConfig.checkInterval;
     CONFIG.stableCount = traeConfig.stableCount;
     CONFIG.startupDelay = traeConfig.startupDelay;
-    
+    CONFIG.noStopMode = noStopMode;
+
     const versionName = traeConfig.version === 'international' ? '国际版 (Trae)' : '国内版 (Trae CN)';
     log(`📍 使用版本: ${versionName}`, 'blue');
+    if (noStopMode) {
+        log(`📍 模式: NoStop (忽略完成信号)`, 'magenta');
+    }
     log(`📍 Trae 路径: ${traeConfig.path}`, 'blue');
     log(`📍 调试端口: ${traeConfig.port}`, 'blue');
     log('');
@@ -254,7 +262,8 @@ async function injectScript() {
                 checkInterval: CONFIG.checkInterval,
                 stableCount: CONFIG.stableCount,
                 scenarios: scenariosConfig,
-                selectors: selectorsScript
+                selectors: selectorsScript,
+                noStopMode: CONFIG.noStopMode
             });
             
             // 包装脚本

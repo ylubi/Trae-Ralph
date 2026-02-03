@@ -81,6 +81,11 @@ function defineModule(name, fn) {
         console.log(`⚙️ 配置 stableCount: ${options.stableCount}`);
         bundle = bundle.replace('stableCount: 3', `stableCount: ${options.stableCount}`);
     }
+
+    if (options.noStopMode) {
+        console.log(`⚙️ 配置 noStopMode: ${options.noStopMode}`);
+        bundle = bundle.replace('noStopMode: false', `noStopMode: ${options.noStopMode}`);
+    }
     
     if (options.scenarios) {
         console.log('⚙️ 注入场景配置');

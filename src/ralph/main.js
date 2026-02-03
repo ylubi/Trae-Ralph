@@ -342,6 +342,18 @@ function handleDetectedScenario(result, lastMessage) {
     
     if (action === 'wait') {
         executeWaitAction(waitTime, result.scenario, lastMessage);
+    } else if (action === 'stop') {
+        if (CONFIG.noStopMode) {
+            console.log(`🔄 [NoStop模式] 检测到停止信号 (${scenario.name})，但继续运行...`);
+            // 为了避免立即再次触发（如果文案没变），可以稍微等待一下，或者依赖 detector 的去重机制
+            // 但如果 XML 状态一直存在，去重机制可能已经标记为 triggered。
+            // 只要我们不清除 triggered 状态，它应该不会立即重复触发同一个 scenario（取决于 detector 实现）。
+            // 不过 detector.markTriggered(result.scenario) 已经在上面调用了。
+        } else {
+            console.log(`🛑 检测到停止信号 (${scenario.name})，停止 Ralph Loop。`);
+            console.log('🎉 Mission Complete!');
+            stopLoop();
+        }
     } else if (action === 'log') {
         const message = detector.getResponse(result.scenario, { lastMessage });
         console.log(message);
