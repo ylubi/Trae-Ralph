@@ -10,6 +10,7 @@
     "config": "node src/config.js",
     "config:cn": "node src/config.js --cn",
     "scenarios": "node src/scenario-manager.js",
+    "setup-trae": "node src/setup-trae.js",
     "start": "node src/launcher.js",
     "start:nostop": "node src/launcher.js --nostop",
     "start:cn": "node src/launcher.js --version china",

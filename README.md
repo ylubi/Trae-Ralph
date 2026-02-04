@@ -105,19 +105,40 @@ npm run start:cn
 ```bash
 # 部署到当前项目
 trae-ralph setup-trae
+# 或者使用 npm script
+npm run setup-trae
 
 # 部署到指定目录
 trae-ralph setup-trae --path /path/to/project
+# 或者使用 npm script
+npm run setup-trae -- --path /path/to/project
 
 # 选择性部署
 trae-ralph setup-trae --rules 01-ralph-core-concepts,02-architecture-patterns
 trae-ralph setup-trae --skills scenario-detection,error-recovery
+# 或者使用 npm script
+npm run setup-trae -- --rules 01-ralph-core-concepts,02-architecture-patterns
 
 # 增量更新（保留用户自定义文件）
 trae-ralph setup-trae --update
+# 或者使用 npm script
+npm run setup-trae -- --update
 
 # 仅验证模板一致性
 trae-ralph setup-trae --validate-only
+# 或者使用 npm script
+npm run setup-trae -- --validate-only
+```
+
+## 第一次任务提示词推荐
+
+最好第一次任务时，在对话框输入前面增加 “先加载 Ralph 开发规则，在决定怎么做”
+
+```
+先加载 Ralph 开发规则，在决定怎么做
+使用 Ralph 模式开发
+
+// 需求描述
 ```
 
 ## 工作原理
@@ -212,10 +233,14 @@ npm run scenarios
 
 MIT License - 详见 [LICENSE](LICENSE) 文件
 
-## 支持
+## 交流反馈
 
-- [问题反馈](https://github.com/your-username/trae-ralph/issues)
-- [讨论区](https://github.com/your-username/trae-ralph/discussions)
+如果你在使用过程中遇到问题、有任何建议或者新需求，欢迎通过以下方式联系：
+
+- 📧 **邮箱**: yhuiche@gmail.com
+- 🐧 **QQ 群**: [点击加入](https://qm.qq.com/q/hKOkL4z9dK)（群号：661990120）
+- 🐛 **问题反馈**: [GitHub Issues](https://github.com/ylubi/Trae-Ralph/issues)
+- ⭐ **项目地址**: [github.com/ylubi/Trae-Ralph](https://github.com/ylubi/Trae-Ralph)
 
 ---
 

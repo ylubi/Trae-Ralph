@@ -333,7 +333,7 @@ async function resetContextAndContinue() {
         
         // 4. 发送继续
         console.log('💡 发送“继续”...');
-        const success = sendMessage('查看 Ralph 开发进程 \n\n 继续');
+        const success = sendMessage('继续');
         if (success) {
             console.log('✅ “继续”发送成功');
         } else {
