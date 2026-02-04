@@ -1,10 +1,10 @@
 
 module.exports = {
   id: 'contextLimitExceeded',
-  name: '上下文长度过大',
+  name: '上下文长度过大(确认)',
   description: '检测到上下文长度超过限制时，自动输入“继续”',
   enabled: true,
-  priority: 20, // 高优先级，系统级错误
+  priority: 20, // 低于输出过长 (2026-02-04 调低)
   isConfirm: true, // 标记为确认类操作，允许在停止期间触发
   group: 'system-recovery',
   groupCooldown: 60000, // 冷却 60秒，避免短时间内连续触发

@@ -17,10 +17,10 @@
 
 module.exports = {
   id: 'outputLimitClick',
-  name: '输出过长自动点击',
+  name: '输出过长自动点击(确认)',
   description: '检测到输出过长提示卡片时，自动点击继续按钮',
   enabled: true,
-  priority: 21, // 高优先级，但低于系统严重错误
+  priority: 26, // 高优先级，确保优先于上下文限制 (2026-02-04 调高)
   isConfirm: true, // 标记为确认类操作，允许在停止期间多次触发
   thinkingTime: 0, // 无需等待，立即触发
   

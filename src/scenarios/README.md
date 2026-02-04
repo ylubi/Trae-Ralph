@@ -77,6 +77,7 @@ scenarios/
 - system-alerts.js：systemError｜系统错误
 - system-alerts.js：modelLimitReached｜模型思考上限
 - task-completion-flow.js：taskCompletedConfirmCheck｜任务完成确认检查
+- main.js：stalledReplyMonitor｜回复卡死监控 (系统内置)
 
 ## 测试记录模板（可直接填写）
 
@@ -106,6 +107,7 @@ scenarios/
 | modelLimitReached          | 模型思考上限     | 高     | custom  | 模型思考次数已达上限          | 点击“继续”                 | 未测 |      |        |      |
 | taskCompletedConfirmCheck  | 任务完成确认检查 | 中     | custom  | Trae状态显示“任务完成”        | 发送“继续”                  | ✅ |      |        |      |
 | contextLimitExceeded       | 上下文长度过大   | 高     | custom  | 上下文长度过大提示            | 新建任务->保留->继续       | ✅ |      |        |      |
+| stalledReplyMonitor        | 回复卡死监控     | 高     | system  | 回复总数6分钟无变化           | 点击停止->发送说明->继续   | ✅ |      |        |      |
 
 ## 测试方法
 
@@ -118,6 +120,7 @@ scenarios/
 + ✅ 高风险命令确认，如果上面的测试有弹框，且完成，则该功能正常
 + ✅ 终端超时跳过：使用提示词 "运行命令 npm run dev"，开启 Ralph, 会出现终端卡片，超时后点击跳过，终端会关闭继续任务，则该功能成功。
 + ✅ 任务完成确认检查：trae 出现"任务完成"， ralph 依旧会发送“继续”，则该功能成功。
++ ✅ 回复卡死监控：当 Ralph 运行过程中，若连续 6 分钟回复数量未增加，Ralph 应自动点击停止按钮（如有）并发送“回复总数长时间未变化...”继续指令。
 
 
 ## 场景管理

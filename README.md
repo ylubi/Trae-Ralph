@@ -138,6 +138,7 @@ trae-ralph setup-trae --validate-only
 - 需要确认
 - 提前完成
 - 长时间思考
+- 回复卡死监控 (系统级)
 
 **管理场景：**
 

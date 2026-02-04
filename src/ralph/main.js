@@ -32,6 +32,7 @@ const {
     sendMessage, 
     sendTerminalInput, 
     clickSkipButton,
+    clickStopButton,
     resetContextAndContinue
 } = require('./actions');
 const { ScenarioDetector } = require('./detector');
@@ -51,9 +52,90 @@ let lastWorkingAt = 0;
 let lastHandledTaskCount = 0; // 改用 task 数量来追踪进度
 let lastObservedTaskCount = 0;
 
+// 新增监控变量
+let lastTotalReplyCount = 0;
+let lastReplyCountChangeTime = Date.now();
+const STALLED_CHECK_INTERVAL = 6 * 60 * 1000; // 6分钟
+
 let skipFallbackTimeout = null;
 
 const detector = new ScenarioDetector();
+
+/**
+ * 重置 Ralph 信息（用于新开对话时）
+ */
+function resetRalphInfo() {
+    console.log('🔄 检测到新对话或上下文重置，重置 Ralph 状态信息...');
+    
+    // 重置核心循环状态
+    checkCount = 0;
+    stableCount = 0;
+    wasWorking = false;
+    hasEverWorked = false;
+    firstStopTime = null;
+    sentDuringStop = false;
+    processedScenarioDuringStop = false;
+    stopHandled = false;
+    lastActionAt = 0;
+    lastWorkingAt = 0;
+    lastHandledTaskCount = 0;
+    lastObservedTaskCount = 0;
+    
+    // 重置监控状态
+    lastTotalReplyCount = 0;
+    lastReplyCountChangeTime = Date.now();
+    
+    // 清除可能存在的定时器
+    if (skipFallbackTimeout) {
+        clearTimeout(skipFallbackTimeout);
+        skipFallbackTimeout = null;
+    }
+}
+
+/**
+ * 监控回复总数变化，处理长时间卡死情况
+ * @param {number} currentTotalReplyCount 当前回复总数
+ */
+function monitorStalledState(currentTotalReplyCount) {
+    // 1. 检测新对话：如果回复数大幅减少（且接近0），视为新对话
+    if (currentTotalReplyCount < lastTotalReplyCount && currentTotalReplyCount <= 1) {
+        resetRalphInfo();
+        lastTotalReplyCount = currentTotalReplyCount;
+        return;
+    }
+
+    // 2. 检测变化
+    if (currentTotalReplyCount !== lastTotalReplyCount) {
+        lastTotalReplyCount = currentTotalReplyCount;
+        lastReplyCountChangeTime = Date.now();
+        return;
+    }
+
+    // 3. 检测超时（仅当有回复且不为0时，防止在空闲初始状态误触发）
+    if (currentTotalReplyCount > 0) {
+        const idleTime = Date.now() - lastReplyCountChangeTime;
+        if (idleTime > STALLED_CHECK_INTERVAL) {
+            console.log(`⚠️ 检测到回复总数 (${currentTotalReplyCount}) 长时间 (${Math.floor(idleTime/60000)}分钟) 未变化，触发保底措施...`);
+            
+            // 尝试点击停止按钮
+            const stopped = clickStopButton();
+            if (stopped) {
+                console.log('✅ 已触发停止按钮');
+            } else {
+                console.log('ℹ️ 未找到停止按钮或已停止');
+            }
+
+            // 发送继续指令
+            // 稍作延迟以确保停止操作生效（如果是异步的）
+            setTimeout(() => {
+                console.log('🔄 发送保底继续指令...');
+                sendMessage('回复总数长时间未变化，触发保底措施 \n\n 继续');
+                // 重置时间戳，防止立即重复触发
+                lastReplyCountChangeTime = Date.now();
+            }, 1000);
+        }
+    }
+}
 
 /**
  * 辅助函数：调度保底跳过
@@ -116,6 +198,8 @@ function scheduleSkipFallback(timeoutMs = 180000) {
           console.log('✅ 保底跳过点击成功');
         } else if (scenario.handler === 'resetContext') {
         resetContextAndContinue();
+        // 如果是上下文重置，应该也重置 Ralph 信息
+        resetRalphInfo();
         processedScenarioDuringStop = true;
     } else {
           console.log('⚠️ 保底跳过点击失败');
@@ -544,6 +628,10 @@ function runLoopIteration() {
     } else {
         processStoppedState(currentTaskCount, blocking);
     }
+
+    // 2. 监控回复总数变化（独立于工作状态，作为全局保底）
+    const totalReplyCount = document.querySelectorAll('section.chat-turn.assistant').length;
+    monitorStalledState(totalReplyCount);
 }
 
 /**

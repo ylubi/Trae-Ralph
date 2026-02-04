@@ -158,6 +158,13 @@ function generateBrowserConfig() {
       checkIncomplete: detection.checkIncomplete,
       incompleteIndicators: detection.incompleteIndicators,
 
+      // 高级控制
+      cooldown: scenario.cooldown,
+      group: scenario.group,
+      groupCooldown: scenario.groupCooldown,
+      isConfirm: scenario.isConfirm,
+      repeatable: scenario.repeatable,
+
       // Response 配置
       action: scenario.response?.action || scenario.action || 'continue',
       handler: scenario.response?.handler || scenario.handler,

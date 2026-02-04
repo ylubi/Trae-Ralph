@@ -27,7 +27,8 @@ module.exports = {
   
   // 响应策略
   response: {
-    action: 'send', // 发送消息
-    message: '继续'
+    action: 'custom', // 使用 custom 以支持 repeatable
+    message: '继续',
+    repeatable: true // 允许在停止状态下重复执行 (配合 cooldown)
   }
 };

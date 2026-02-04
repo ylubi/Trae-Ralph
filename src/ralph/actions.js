@@ -12,6 +12,7 @@
  * - sendMessage: 发送消息到聊天框
  * - sendTerminalInput: 发送内容到终端输入框
  * - clickSkipButton: 点击跳过按钮
+ * - clickStopButton: 点击停止按钮
  * - shouldBlockSending: 检查是否应该阻止发送
  */
 const { 
@@ -20,6 +21,26 @@ const {
   findChatInput, 
   getLastAssistantReplyElement 
 } = require('./dom');
+
+/**
+ * 点击停止按钮
+ * @returns {boolean} 是否成功点击
+ */
+function clickStopButton() {
+  const sendButton = findSendButton();
+  if (sendButton) {
+    // 检查按钮内部是否有停止图标
+    const stopIcon = sendButton.querySelector('.codicon-stop-circle');
+    // 或者检查按钮本身的 aria-label 或 title (如果 Trae 有设置)
+    // 但通常我们依赖图标存在来判断是否是停止按钮
+    if (stopIcon) {
+      sendButton.click();
+      console.log('🛑 已点击停止按钮');
+      return true;
+    }
+  }
+  return false;
+}
 
 /**
  * 检查是否应该阻止发送消息
@@ -329,5 +350,7 @@ module.exports = {
     sendMessage,
     sendTerminalInput,
     clickSkipButton,
+    clickStopButton,
+    shouldBlockSending,
     resetContextAndContinue
 };

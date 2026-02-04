@@ -265,6 +265,45 @@ class ScenarioDetector {
     }
     
     /**
+     * 计算场景的梯队等级 (Tier)
+     * Tier 1: 系统恢复 (必须立即执行) - systemError, serviceException
+     * Tier 2: 物理交互/解除阻塞 (强效能) - click, custom handler (skip/input)
+     * Tier 3: 对话维持/通知 (弱效能) - continue (text), wait
+     * @param {Object} scenario 场景配置
+     * @param {string} id 场景ID
+     * @returns {number} 梯队等级 (数字越小优先级越高)
+     */
+    calculateTier(scenario, id) {
+        // 1. Tier 1: 系统级严重错误 (Highest Priority)
+        // 显式指定的高危场景，或 group 为 system-recovery 且优先级极高 (>25)
+        if (id === 'systemError' || id === 'serviceException' || 
+            (scenario.group === 'system-recovery' && scenario.priority >= 25)) {
+            return 1;
+        }
+
+        // 2. Tier 2: 物理交互与阻塞解除 (High Priority)
+        // 动作类型为 click，或者 custom handler 涉及跳过/输入
+        // 这些操作通常能直接改变 IDE 状态，解除阻塞
+        const response = scenario.response || {};
+        const action = scenario.action || response.action;
+        const handler = scenario.handler || response.handler;
+
+        if (action === 'click') return 2;
+        if (action === 'custom' && (
+            handler === 'skipAfterTimeout' || 
+            handler === 'rapidInteractiveInput' ||
+            handler === 'resetContext' // 重置上下文也是一种强操作
+        )) return 2;
+        
+        // 显式标记为确认类操作的，也归为 Tier 2
+        if (scenario.isConfirm) return 2;
+
+        // 3. Tier 3: 文本回复与等待 (Normal Priority)
+        // 仅发送“继续”或等待，无法物理清除遮挡物
+        return 3;
+    }
+
+    /**
      * 执行场景检测
      * @param {Object} context 上下文 (lastMessage, chatContent, stoppedDuration, hasEverWorked)
      * @returns {Object} 检测结果 { detected, scenario, scenarioConfig, matchInfo, priority }
@@ -297,23 +336,35 @@ class ScenarioDetector {
                 if (!hasIncomplete) continue;
             }
 
+            // 计算梯队
+            const tier = this.calculateTier(scenario, id);
+
             matches.push({
                 detected: true,
                 scenario: id,
                 scenarioConfig: scenario,
                 matchInfo,
-                priority: scenario.priority
+                priority: scenario.priority,
+                tier: tier
             });
         }
       }
 
       if (matches.length > 0) {
-          matches.sort((a, b) => b.priority - a.priority);
+          // 排序规则：
+          // 1. Tier 越小越优先 (1 > 2 > 3)
+          // 2. Priority 越大越优先
+          matches.sort((a, b) => {
+              if (a.tier !== b.tier) {
+                  return a.tier - b.tier; // 升序：1 在前
+              }
+              return b.priority - a.priority; // 降序：大数在前
+          });
           
           if (matches.length > 1) {
               console.log(`🔎 检测到 ${matches.length} 个候选场景:`);
-              matches.forEach(m => console.log(`   - ${m.scenarioConfig.name} (P:${m.priority})`));
-              console.log(`👉 选择优先级最高的: ${matches[0].scenarioConfig.name}`);
+              matches.forEach(m => console.log(`   - [T${m.tier}] ${m.scenarioConfig.name} (P:${m.priority})`));
+              console.log(`👉 选择最优场景: [T${matches[0].tier}] ${matches[0].scenarioConfig.name}`);
           }
           
           return matches[0];

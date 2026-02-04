@@ -38,7 +38,7 @@ module.exports = [
     name: '系统错误',
     description: '检测系统未知错误',
     enabled: true,
-    priority: 25, // 高优先级
+    priority: 28, // 极高优先级 (2026-02-04 调高)
     group: 'system-recovery', // 分组：系统恢复
     groupCooldown: 30000, // 组冷却 30秒
     cooldown: 30000, // 30秒冷却时间，防止频繁触发
@@ -60,7 +60,7 @@ module.exports = [
     name: '服务异常',
     description: '检测服务异常错误，自动点击重试',
     enabled: true,
-    priority: 25, // 高优先级
+    priority: 28, // 极高优先级 (2026-02-04 调高)
     group: 'system-recovery',
     groupCooldown: 30000,
     cooldown: 30000,

@@ -17,7 +17,7 @@ module.exports = [
     name: '运行命令卡片',
     description: '自动点击运行命令卡片中的运行按钮',
     enabled: true,
-    priority: 10,
+    priority: 30, // 提高优先级，确保高于终端超时跳过(23)
     detection: {
       // 匹配普通运行卡片和高风险运行卡片，必须包含运行按钮
       selectors: ['.icd-run-command-card-v2 .icd-run-command-card-v2-actions-btn-run'],
@@ -60,7 +60,7 @@ module.exports = [
     name: 'Sudo密码等待跳过',
     description: '检测到Sudo命令且终端长时间无输出（可能是等待密码），快速跳过',
     enabled: true,
-    priority: 15, // 高于普通超时
+    priority: 24, // 必须高于 agentWorking (22)
     thinkingTime: 5000, // 5秒后跳过 (给一点时间确认是否真的卡住)
     detection: {
       textCheck: {
@@ -79,10 +79,10 @@ module.exports = [
     id: 'terminalLongWaitSkip',
     // ✅ 已测试通过 (2026-01-29): 核心功能，修改请谨慎
     name: '终端超时跳过',
-    description: '检测到终端长时间未返回输出或命令运行过久，等待3分钟后跳过',
+    description: '检测到终端长时间未返回输出或命令运行过久，等待5分钟后跳过',
     enabled: true,
-    priority: 12, // 比Sudo低，比普通运行高
-    thinkingTime: 180000, // 3分钟
+    priority: 23, // 必须高于 agentWorking (22)，确保在忙碌状态下也能跳过
+    thinkingTime: 300000, // 5分钟 (从3分钟上调，避免误杀正常构建任务)
     detection: {
       // 必须显式配置使用 lastTurnOnly，确保检测的是最新回复
       lastTurnOnly: true,

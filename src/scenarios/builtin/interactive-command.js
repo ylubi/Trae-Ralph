@@ -22,18 +22,16 @@ module.exports = {
   name: '交互式命令',
   description: '检测需要用户输入的交互式命令',
   enabled: true,
-  // 优先级必须高于 terminalLongWaitSkip (12)，否则会被超时跳过逻辑抢占
-  priority: 20,
-  
+  // 优先级必须高于 agentWorking (22) 和 terminalLongWaitSkip (12)
+  priority: 25,
+  detection: {
   // 检测规则
   detection: {
     keywords: [
       '等待用户输入',
       'waiting for input',
       '请确认',
-      '是否继续',
-      'y/n',
-      'yes/no'
+      '是否继续'
     ],
     patterns: [
       /\(y\/n\)/i,
