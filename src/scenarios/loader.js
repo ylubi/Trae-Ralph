@@ -169,7 +169,7 @@ function generateBrowserConfig() {
       action: scenario.response?.action || scenario.action || 'continue',
       handler: scenario.response?.handler || scenario.handler,
       target: scenario.response?.target || scenario.target,
-      message: scenario.response?.message || scenario.message || '继续',
+      message: scenario.response?.message || scenario.message || '查看 Ralph 开发进程 \n\n 继续',
       waitTime: scenario.response?.waitTime || scenario.waitTime,
       responses: scenario.response?.responses || scenario.responses
     };

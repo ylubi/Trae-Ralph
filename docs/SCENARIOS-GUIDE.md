@@ -84,7 +84,7 @@ module.exports = {
   
   response: {
     action: 'continue',
-    message: '继续'
+    message: '查看 Ralph 开发进程 \n\n 继续'
   }
 };
 ```

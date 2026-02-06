@@ -34,7 +34,11 @@ const CONFIG = {
   scenarios: SCENARIOS,
   chatHistoryTurns: 6,
   chatHistoryCharLimit: 4000,
-  noStopMode: false
+  noStopMode: false,
+  messages: {
+    continue: '查看 Ralph 开发进程 \n\n 继续',
+    stalled: '查看 Ralph 开发进程 \n\n 继续'
+  }
 };
 
 // 注入选择器定义（会被 launcher/injector 替换）

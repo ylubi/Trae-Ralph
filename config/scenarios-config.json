@@ -10,7 +10,7 @@
         "上下文过长"
       ],
       "action": "continue",
-      "message": "继续"
+      "message": "查看 Ralph 开发进程 \n\n 继续"
     },
     "rateLimit": {
       "enabled": true,
@@ -24,7 +24,7 @@
       ],
       "action": "wait",
       "waitTime": 60000,
-      "message": "继续"
+      "message": "查看 Ralph 开发进程 \n\n 继续"
     },
     "interactiveCommand": {
       "enabled": true,
@@ -74,7 +74,7 @@
         "要不要"
       ],
       "action": "continue",
-      "message": "确认，继续"
+      "message": "查看 Ralph 开发进程 \n\n 继续"
     },
     "longThinking": {
       "enabled": true,
@@ -82,7 +82,7 @@
       "checkDuration": true,
       "thinkingTime": 300000,
       "action": "continue",
-      "message": "继续"
+      "message": "查看 Ralph 开发进程 \n\n 继续"
     }
   },
   "customScenarios": []

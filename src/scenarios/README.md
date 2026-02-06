@@ -25,12 +25,12 @@ scenarios/
 ### 1. 上下文限制 (context-limit.js)
 - **优先级**: 1（最高）
 - **检测**: 上下文窗口已满的提示
-- **响应**: 自动发送"继续"命令
+- **响应**: 自动发送"查看 Ralph 开发进程 \n\n 继续"命令
 
 ### 2. 请求限制 (rate-limit.js)
 - **优先级**: 1（最高）
 - **检测**: API 请求频率限制
-- **响应**: 等待 60 秒后发送"继续"
+- **响应**: 等待 60 秒后发送"查看 Ralph 开发进程 \n\n 继续"
 
 ### 3. 交互式命令 (interactive-command.js)
 - **优先级**: 2（高）
@@ -40,7 +40,7 @@ scenarios/
 ### 4. 需要确认 (needs-confirmation.js)
 - **优先级**: 2（高）
 - **检测**: AI 等待用户确认
-- **响应**: 发送"确认，继续"
+- **响应**: 发送"查看 Ralph 开发进程 \n\n 继续"
 
 ### 5. 提前完成 (premature-completion.js)
 - **优先级**: 3（中）
@@ -50,7 +50,7 @@ scenarios/
 ### 6. 长时间思考 (long-thinking.js)
 - **优先级**: 4（低）
 - **检测**: 超过 30 秒无响应
-- **响应**: 发送"继续"
+- **响应**: 发送"查看 Ralph 开发进程 \n\n 继续"
 
 ## 测试清单（按文件）
 
@@ -85,15 +85,15 @@ scenarios/
 
 | 场景ID                     | 名称             | 重要性 | 来源    | 触发条件                      | 预期动作                   | 结果 | 备注 | 测试人 | 日期 |
 | :------------------------- | :--------------- | :----- | :------ | :---------------------------- | :------------------------- | :--- | :--- | :----- | :--- |
-| contextLimit               | 上下文限制       | 中     | builtin | 上下文限制提示/相关关键词     | 发送“继续”                 | 未测 |      |        |      |
-| rateLimit                  | 请求限制         | 中     | builtin | 请求限制提示/相关关键词       | 等待后发送“继续”           | 未测 |      |        |      |
+| contextLimit               | 上下文限制       | 中     | builtin | 上下文限制提示/相关关键词     | 发送“查看 Ralph 开发进程 \n\n 继续”                 | 未测 |      |        |      |
+| rateLimit                  | 请求限制         | 中     | builtin | 请求限制提示/相关关键词       | 等待后发送“查看 Ralph 开发进程 \n\n 继续”           | 未测 |      |        |      |
 | interactiveCommand         | 交互式命令       | 高     | builtin | y/n、确认提示或终端等待输入   | 自动回复确认/回车          | ✅ |      |        |      |
-| needsConfirmation          | 需要确认         | 高     | builtin | 需要确认提示                  | 发送“确认，继续”           | 未测 |      |        |      |
+| needsConfirmation          | 需要确认         | 高     | builtin | 需要确认提示                  | 发送“查看 Ralph 开发进程 \n\n 继续”           | 未测 |      |        |      |
 | prematureCompletion        | 提前完成         | 中     | builtin | “已完成”且存在未完成提示      | 发送“请继续完成剩余部分”   | 未测 |      |        |      |
-| longThinking               | 长时间思考       | 低     | builtin | 超过阈值无响应                | 发送“继续”                 | 未测 |      |        |      |
+| longThinking               | 长时间思考       | 低     | builtin | 超过阈值无响应                | 发送“查看 Ralph 开发进程 \n\n 继续”                 | 未测 |      |        |      |
 | agentWorking               | Agent正在工作    | 低     | custom  | 停止按钮可见                  | 记录日志                   | 未测 |      |        |      |
-| agentReady                 | Agent准备就绪    | 中     | custom  | 发送按钮可用且有历史          | 发送“继续”                 | 未测 |      |        |      |
-| sendButtonDisabledContinue | 发送按钮禁用继续 | 高     | custom  | 发送按钮禁用                  | 发送“继续”                 | ✅ |      |        |      |
+| agentReady                 | Agent准备就绪    | 中     | custom  | 发送按钮可用且有历史          | 发送“查看 Ralph 开发进程 \n\n 继续”                 | 未测 |      |        |      |
+| sendButtonDisabledContinue | 发送按钮禁用继续 | 高     | custom  | 发送按钮禁用                  | 发送“查看 Ralph 开发进程 \n\n 继续”                 | ✅ |      |        |      |
 | runCommandCard             | 运行命令卡片     | 高     | custom  | 运行命令卡片出现              | 点击运行                   | ✅ |      |        |      |
 | highRiskConfirm            | 高风险命令确认   | 高     | custom  | 高风险确认弹窗                | 点击确认                   | ✅ |      |        |      |
 | sudoPasswordSkip           | Sudo密码等待跳过 | 中     | custom  | sudo + 终端长时间无输出提示   | 点击跳过                   | 未测 |      |        |      |
@@ -108,6 +108,7 @@ scenarios/
 | taskCompletedConfirmCheck  | 任务完成确认检查 | 中     | custom  | Trae状态显示“任务完成”        | 发送“继续”                  | ✅ |      |        |      |
 | contextLimitExceeded       | 上下文长度过大   | 高     | custom  | 上下文长度过大提示            | 新建任务->保留->继续       | ✅ |      |        |      |
 | stalledReplyMonitor        | 回复卡死监控     | 高     | system  | 回复总数6分钟无变化           | 点击停止->发送说明->继续   | ✅ |      |        |      |
+| newChatReset               | 新对话重置       | 高     | system  | 开启新对话(回复数归零)        | 重置 Ralph 内部状态        | ✅ |      |        |      |
 
 ## 测试方法
 
@@ -120,7 +121,8 @@ scenarios/
 + ✅ 高风险命令确认，如果上面的测试有弹框，且完成，则该功能正常
 + ✅ 终端超时跳过：使用提示词 "运行命令 npm run dev"，开启 Ralph, 会出现终端卡片，超时后点击跳过，终端会关闭继续任务，则该功能成功。
 + ✅ 任务完成确认检查：trae 出现"任务完成"， ralph 依旧会发送“继续”，则该功能成功。
-+ ✅ 回复卡死监控：当 Ralph 运行过程中，若连续 6 分钟回复数量未增加，Ralph 应自动点击停止按钮（如有）并发送“回复总数长时间未变化...”继续指令。
++ ✅ 回复卡死监控：当 Ralph 运行过程中，若连续 6 分钟回复数量未增加，Ralph 应自动点击停止按钮（如有）并发送继续指令。
++ ✅ 新对话重置：在 Ralph 运行时开启新的 Trae 对话（或清空对话），Ralph 应检测到回复数归零并重置内部计数器，确保新任务能正常触发。
 
 
 ## 场景管理

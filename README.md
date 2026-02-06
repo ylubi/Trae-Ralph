@@ -12,10 +12,41 @@
 - ✅ 非侵入式 - 不修改 Trae 核心文件
 - ✅ 多版本支持 - 支持国际版和国内版
 - ✅ 场景检测 - 智能识别多种中断场景
+- ✅ 状态重置 - 新对话自动重置状态，无缝切换
+- ✅ 卡死监控 - 长时间无响应自动尝试恢复
 - ✅ 易于扩展 - 支持自定义场景
 - ✅ 全局命令 - 安装后可在任何位置使用
 
+## 目前项目现在
+
++ 项目现阶段可以用于实现个人新想法、个人新项目，或者作为参考
++ 可以提供相关参考，来实现ai全自动自主变成。
++ trae ralph 主要由两个部分组成：CPD 注入js脚本，trae rules 规范
++ CPD 注入 js 脚本可以使 trae 一直工作
++ trae rules 规范用来规范 trae AI 对项目的开发
++ trae ralph 现在的场景检测可能不全面
++ trae ralph 现在的场景处理可能会跳过或冲突，这个后面可能会重构场景处理规则来解决
++ ⚠️ 现在的危险命令操作，trae 使用了直接执行的方案。注意，谨慎使用，避免对系统造成损害。主要是删除命令
+
 ## 快速开始
+
+### 目前项目使用步骤
+
++ 下载并进入目录 ```cd trae-ralph```
++ 安装依赖 ```npm install```
++ 配置 Trae 路径，需要指定本地trae或者trae-cn 路径 ```npm run config -- --trae-path "D:\Program Files\Trae\Trae.exe"```
++ 部署 Ralph 模板到指定项目 ```npm run inject -- --path "PrjectPath"```
++ 使用trae ralph 启动 trae 或者 trae-cn，默认启动国际版 ```npm run start```，启动国内版 ```npm run start:cn```
++ 在 trae 中打开项目
++ 最好第一次任务时，在对话框输入前面增加 “先加载 Ralph 开发规则，在决定怎么做”，点击发送开始trae对话
+
+    ```
+    先加载 Ralph 开发规则，在决定怎么做
+    使用 Ralph 模式开发
+
+    // 需求描述
+    ```
++ 点击 “开启 Tralph” 按钮，开启 Ralph 模式
 
 ### 安装
 

@@ -21,6 +21,7 @@ const {
   findChatInput, 
   getLastAssistantReplyElement 
 } = require('./dom');
+const { CONFIG } = require('./config');
 
 /**
  * 点击停止按钮
@@ -333,7 +334,7 @@ async function resetContextAndContinue() {
         
         // 4. 发送继续
         console.log('💡 发送“继续”...');
-        const success = sendMessage('继续');
+        const success = sendMessage(CONFIG.messages.continue);
         if (success) {
             console.log('✅ “继续”发送成功');
         } else {

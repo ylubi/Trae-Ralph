@@ -49,7 +49,7 @@ let processedScenarioDuringStop = false;
 let stopHandled = false;
 let lastActionAt = 0;
 let lastWorkingAt = 0;
-let lastHandledTaskCount = 0; // 改用 task 数量来追踪进度
+let lastHandledTaskCount = -1; // 改用 task 数量来追踪进度，初始为 -1 以确保空对话(0)也能触发一次检测
 let lastObservedTaskCount = 0;
 
 // 新增监控变量
@@ -78,7 +78,7 @@ function resetRalphInfo() {
     stopHandled = false;
     lastActionAt = 0;
     lastWorkingAt = 0;
-    lastHandledTaskCount = 0;
+    lastHandledTaskCount = -1;
     lastObservedTaskCount = 0;
     
     // 重置监控状态
@@ -129,7 +129,7 @@ function monitorStalledState(currentTotalReplyCount) {
             // 稍作延迟以确保停止操作生效（如果是异步的）
             setTimeout(() => {
                 console.log('🔄 发送保底继续指令...');
-                sendMessage('回复总数长时间未变化，触发保底措施 \n\n 继续');
+                sendMessage(CONFIG.messages.stalled);
                 // 重置时间戳，防止立即重复触发
                 lastReplyCountChangeTime = Date.now();
             }, 1000);
@@ -230,7 +230,7 @@ function sendContinueOrClickExisting() {
     // 0. 检查发送按钮是否处于停止状态 (表示 AI 正在工作)
     // 注意：这里需要通过 DOM 查找，因为 dom.js 中的 isSendButtonEnabled 和 findSendButton 是局部的
     // 但我们可以直接调用 actions.js 中的 sendMessage，它内部有检查
-    return sendMessage('继续');
+    return sendMessage(CONFIG.messages.continue);
 }
 
 // ============================================

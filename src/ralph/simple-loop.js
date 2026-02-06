@@ -33,7 +33,10 @@ const CONFIG = {
     ]
   },
   checkInterval: 5000,  // 5 秒检查一次
-  stableCount: 3        // 连续 3 次稳定才认为停止
+  stableCount: 3,       // 连续 3 次稳定才认为停止
+  messages: {
+    continue: '查看 Ralph 开发进程 \n\n 继续'
+  }
 };
 
 /**
@@ -233,7 +236,7 @@ function exposeTools() {
       
       window.sendContinue = function() {
         console.log('💡 手动发送"继续"...');
-        return sendMessage('继续');
+        return sendMessage(CONFIG.messages.continue);
       };
       
       window.checkAIStatus = function() {

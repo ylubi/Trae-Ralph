@@ -28,7 +28,7 @@ module.exports = {
   // 响应策略
   response: {
     action: 'custom', // 使用 custom 以支持 repeatable
-    message: '继续',
+    message: '查看 Ralph 开发进程 \n\n 继续',
     repeatable: true // 允许在停止状态下重复执行 (配合 cooldown)
   }
 };

@@ -21,7 +21,7 @@ const SCENARIOS = {
       '[class*="context"][class*="warning"]'
     ],
     action: 'continue',
-    message: '继续'
+    message: '查看 Ralph 开发进程 \n\n 继续'
   },
 
   // 场景 2: 请求限制
@@ -42,7 +42,7 @@ const SCENARIOS = {
     ],
     action: 'wait',
     waitTime: 60000, // 等待 60 秒
-    message: '继续'
+    message: '查看 Ralph 开发进程 \n\n 继续'
   },
 
   // 场景 3: 交互式命令等待

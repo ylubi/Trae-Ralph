@@ -50,7 +50,7 @@ module.exports = {
   // 响应策略
   response: {
     action: 'continue',  // 'continue', 'wait', 'custom'
-    message: '继续'
+    message: '查看 Ralph 开发进程 \n\n 继续'
   }
 };
 ```

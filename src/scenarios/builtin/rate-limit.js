@@ -44,6 +44,6 @@ module.exports = {
   response: {
     action: 'wait',
     waitTime: 60000, // 等待 60 秒
-    message: '继续'
+    message: '查看 Ralph 开发进程 \n\n 继续'
   }
 };
