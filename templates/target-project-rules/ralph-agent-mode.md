@@ -44,9 +44,10 @@
 一个任务 (Task) 只有在满足以下**所有**条件时，才能被标记为 `[x]`：
 1. 代码已提交。
 2.46→2. **自动化测试通过**: 
-   - **后端**: 运行 `npm run test:unit` (逻辑) 和 `npm run test:api` (接口) 无报错。
-   - **前端**: 运行 `npm run test:component` (组件交互) 和 `npm run test:e2e` (全链路) 无报错。
-   - **全覆盖原则**: 前端测试必须覆盖所有页面 (Pages) 和所有核心功能交互。严禁仅靠 E2E 覆盖前端逻辑，**必须**编写组件级单元测试。
+47→   - **后端**: 运行 `npm run test:unit -- --watch=false` (逻辑) 和 `npm run test:api -- --watch=false` (接口) 无报错。
+48→   - **前端**: 运行 `npm run test:component -- --watch=false` (组件交互) 和 `npm run test:e2e -- --watch=false` (全链路) 无报错。
+49→   - **通用原则**: 始终添加 `--watch=false` 或 `CI=true` 等参数，确保测试在 CI 模式下运行，严禁进入交互式/监听模式。
+50→   - **全覆盖原则**: 前端测试必须覆盖所有页面 (Pages) 和所有核心功能交互。严禁仅靠 E2E 覆盖前端逻辑，**必须**编写组件级单元测试。
 3. **MCP 交互验收通过**: 使用 Chrome DevTools 或 Database MCP 验证数据和 UI。
 4. **状态文件已更新**:
    - 你必须使用工具修改 `05-test-plan.md`，将通过的测试项打钩 `[x]`。
@@ -59,10 +60,12 @@
 - **目标**: 确保下一个接手的 Agent (可能是未来的你自己) 不会重蹈覆辙。
 
 ### 7. 命令执行规范 (Command Execution)
-- **禁止交互式命令**: 严禁执行需要用户键盘输入的命令（如 `npm init` (无参), `python` (进入REPL), `top`）。
-  - **正确做法**: 使用非交互式参数，如 `npm init -y`。
-  - **正确做法**: 如果需要创建文件，直接使用 `Write` 工具，而不是 `cat > file`。
-- **长耗时任务**: 对于启动服务器等不退出的命令，必须设置 `blocking: false`。
+62→- **禁止交互式命令**: 严禁执行需要用户键盘输入的命令（如 `npm init` (无参), `python` (进入REPL), `top`, `npm test` (带 watch)）。
+63→  - **正确做法**: 使用非交互式参数，如 `npm init -y`。
+64→  - **正确做法**: 如果需要创建文件，直接使用 `Write` 工具，而不是 `cat > file`。
+65→  - **正确做法**: 运行测试时强制使用 CI 模式，例如 `npm test -- --watch=false`。
+66→- **长耗时任务**: 对于启动服务器等不退出的命令，必须设置 `blocking: false`。
+67→- **环境变量控制**: 优先使用 `CI=true` 等环境变量来禁用某些库的交互式提示。
 
 ## 工作流示例 (Workflow Example)
 
