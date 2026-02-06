@@ -32,7 +32,7 @@
 
 ### 目前项目使用步骤
 
-+ 下载并进入目录 ```cd trae-ralph```
++ 下载并进入目录 ```cd Trae-Ralph```
 + 安装依赖 ```npm install```
 + 配置 Trae 路径，需要指定本地trae或者trae-cn 路径 ```npm run config -- --trae-path "D:\Program Files\Trae\Trae.exe"```
 + 部署 Ralph 模板到指定项目 ```npm run inject -- --path "PrjectPath"```
