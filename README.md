@@ -35,7 +35,7 @@
 + 下载并进入目录 ```cd Trae-Ralph```
 + 安装依赖 ```npm install```
 + 配置 Trae 路径，需要指定本地trae或者trae-cn 路径 ```npm run config -- --trae-path "D:\Program Files\Trae\Trae.exe"```
-+ 部署 Ralph 模板到指定项目 ```npm run inject -- --path "PrjectPath"```
++ 部署 Ralph 模板到指定项目 ```npm run rules:inject -- "PrjectPath"```
 + 使用trae ralph 启动 trae 或者 trae-cn，默认启动国际版 ```npm run start```，启动国内版 ```npm run start:cn```
 + 在 trae 中打开项目
 + 最好第一次任务时，在对话框输入前面增加 “先加载 Ralph 开发规则，在决定怎么做”，点击发送开始trae对话
