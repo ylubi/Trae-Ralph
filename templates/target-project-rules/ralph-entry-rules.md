@@ -25,7 +25,12 @@
    - **规则**: 遵循 [ralph-task-management.md](./ralph-task-management.md)
    - **说明**: 规划完成后，必须更新 `RALPH_STATE.md` 指针，并严格按照 checklist 执行。
 
-3. **行为规范 (Behavior)**: 
+3. **测试交付 (Testing)**:
+   - **优先级**: 高 (P1)
+   - **规则**: 遵循 [ralph-testing-mode.md](./ralph-testing-mode.md)
+   - **说明**: 当所有任务完成后，必须进入测试模式，执行 `05-test-plan.md` 中的全量验收。
+
+4. **行为规范 (Behavior)**: 
    - **规则**: 遵循 [ralph-agent-mode.md](./ralph-agent-mode.md)
    - **说明**: 保持角色定义和状态报告。 
 

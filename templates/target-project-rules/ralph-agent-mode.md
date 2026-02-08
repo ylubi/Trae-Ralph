@@ -43,16 +43,10 @@
 ### 4. 完成的定义 (Definition of Done)
 一个任务 (Task) 只有在满足以下**所有**条件时，才能被标记为 `[x]`：
 1. 代码已提交。
-2.46→2. **自动化测试通过**: 
-47→   - **后端**: 运行 `npm run test:unit -- --watch=false` (逻辑) 和 `npm run test:api -- --watch=false` (接口) 无报错。
-48→   - **前端**: 运行 `npm run test:component -- --watch=false` (组件交互) 和 `npm run test:e2e -- --watch=false` (全链路) 无报错。
-49→   - **通用原则**: 始终添加 `--watch=false` 或 `CI=true` 等参数，确保测试在 CI 模式下运行，严禁进入交互式/监听模式。
-50→   - **全覆盖原则**: 前端测试必须覆盖所有页面 (Pages) 和所有核心功能交互。严禁仅靠 E2E 覆盖前端逻辑，**必须**编写组件级单元测试。
-3. **MCP 交互验收通过**: 使用 Chrome DevTools 或 Database MCP 验证数据和 UI。
-4. **状态文件已更新**:
-   - 你必须使用工具修改 `05-test-plan.md`，将通过的测试项打钩 `[x]`。
-   - 只有 `05-test-plan.md` 中的对应测试项全是 `[x]`，`04-ralph-tasks.md` 中的功能项才能打 `[x]`。
-5. **无控制台错误**: 浏览器 Console 中没有红色的 Error 日志。
+2. **原子验证通过**: 已运行相关的单元测试或验证脚本，确认当前代码逻辑正确。
+3. **无控制台错误**: 浏览器 Console 中没有红色的 Error 日志。
+
+> **注意**: 整个迭代 (Iteration) 的完成，还需要额外满足 `ralph-testing-mode.md` 中的交付标准（即 `05-test-plan.md` 全绿）。
 
 ### 6. 经验学习 (Continuous Learning)
 - **启动前**: 必须读取 `docs/planning/<当前迭代>/06-learnings.md`，了解本项目的特殊约定和历史教训。

@@ -2,46 +2,48 @@
 
 <!-- 
 AI 指令: 
-必须严格执行测试状态管理。
-1. 运行验证后，必须**立即**更新此文件。
-2. 只有当测试通过时，才能将 "[ ]" 改为 "[x]"。
-3. 如果测试失败，**不要**标记为 [x]，而应添加关于失败的备注。
-4. 此文件即是“完成的定义 (Definition of Done)”。
-5. 验证关系：测试项与任务并非严格 1:1。一个测试可能覆盖多个任务（如 E2E），一个任务也可能涉及多个测试维度。
-6. 自动执行：AI 必须调用工具运行测试，并根据工具输出自动更新此文件状态，严禁凭空标记。
-7. 非交互式：运行测试命令时必须使用 `--watch=false` 或 `CI=true` 等参数，防止进程挂起。
+此文件对应 Ralph 的 "Track B: 交付级验收" 阶段。
+1. 何时执行: 仅当 `04-ralph-tasks.md` 中的所有任务完成后，才开始执行此计划。
+2. 执行规则: 遵循 `ralph-testing-mode.md` 中的非交互式命令规范。
+3. 状态更新: 运行测试后，根据结果更新 [ ] 为 [x]。只有全部 [x] 后，迭代才算完成。
 -->
 
 ## 1. 自动化测试门禁 (Automated Gates)
-> **强制规则**: 此部分必须由 CI/CD 或本地脚本自动执行。红灯 (Fail) 即视为任务未完成。
+> **强制规则**: 运行全量测试套件，确保无回归问题。
 
-### 1.1 后端/逻辑测试 (Backend & Logic)
-- [ ] **Unit Tests**: 运行 `npm run test:unit`，验证核心业务逻辑、工具函数，覆盖率需 > 80%。
-- [ ] **API Tests**: 运行 `npm run test:api`，验证所有接口的 200/400/500 响应及权限控制。
+- [ ] **全量回归 (All Regression)**: 运行 `npm run test:all` (或等效 CI 命令)，确保所有 Unit/Integration 测试通过。
+- [ ] **关键路径 E2E**: 运行核心业务流程的端到端测试。
 
-### 1.2 前端功能测试 (Frontend Functional)
-- [ ] **Component Tests (覆盖率: 高)**: 运行 `npm run test:component` (Vitest/Jest + Testing Library)。
-    - **页面级 (Page Coverage)**: 必须为每个页面路由 (Route) 编写测试，确保页面能正常渲染且无崩溃。
-    - **交互级 (Interaction Coverage)**: 必须测试所有用户可交互元素（按钮、表单、弹窗），验证点击、输入、提交行为。
-    - **状态级 (State Coverage)**: 必须验证 Loading、Error、Empty、Success 等各种UI状态。
-- [ ] **Hooks/Utils**: 验证自定义 Hooks 和前端工具函数。
+## 2. 关键业务验收 (Key Acceptance Criteria)
+> **说明**: 此处列出本迭代必须交付的核心价值点。
 
-### 1.3 端到端测试 (E2E)
-- [ ] **关键路径**: 运行 `npm run test:e2e` (Playwright/Cypress)。
-    - Case 1: 用户登录 -> 跳转 Dashboard
-    - Case 2: 完整下单流程
+- [ ] **Case 1**: [描述关键场景，例如：用户能成功登录并跳转]
+- [ ] **Case 2**: [描述关键场景]
 
-## 2. MCP 交互式验收 (MCP Interactive Verification)
-> **Agent 操作指南**: 此部分由 Agent 使用 MCP 工具（浏览器、数据库终端）像真人一样进行验证。
+## 3. 交互式验收 (Interactive Verification via MCP)
+> **说明**: 使用 MCP Chrome DevTools 进行真实环境验证。
 
-### 2.1 Web 前端验收 (via Chrome DevTools MCP)
-- [ ] **视觉检查**: 打开 `/login` 页面。
-    - 验证: 按钮在 Mobile 模式下是否不换行。
-    - 动作: 截图保存到 `docs/evidence/login-mobile.png`。
-- [ ] **控制台监控**: 打开 Console 面板。
-    - 验证: 点击提交按钮时，Console 无红色报错。
+- [ ] **视觉/DOM 检查**: 
+    - 动作: 打开 `/` 页面，截图保存。
+    - 验证: 页面无布局错乱，Console 无报错。
+- [ ] **关键交互**: 
+    - 动作: 模拟点击 [核心按钮]。
+    - 验证: 页面正确响应（跳转或弹窗）。
 
-### 2.2 数据一致性验收 (via SQL/Terminal MCP)
-- [ ] **落库检查**:
-    - 动作: 在前端注册新用户 `test_mcp@example.com`。
-    - 验证: 连接数据库执行 `SELECT * FROM users WHERE email='test_mcp@example.com'`，确认记录存在。
+## 4. 真实服务能力验证 (Real Service Capability)
+> **目标**: 拒绝 Demo 级质量，验证生产级可用性。
+
+- [ ] **数据持久化闭环**:
+    - 动作: 用户完成核心操作（如保存设置/下单） -> 刷新页面 -> 退出登录 -> 重新登录。
+    - 验证: 数据依然准确显示，无丢失或回滚。
+- [ ] **错误恢复 (Resilience)**:
+    - 动作: 模拟网络断开/接口 500 报错 -> 点击重试。
+    - 验证: 系统能优雅提示并恢复，而非白屏或卡死。
+- [ ] **完整生命周期**:
+    - 动作: 注册新号 -> 完整使用全套流程 -> 注销账号。
+    - 验证: 流程无断点，账号注销后数据清理干净。
+
+## 5. 手动/视觉验证 (Manual/Visual Verification)
+> **说明**: 仅针对无法自动化的 UI 细节或复杂交互。
+
+- [ ] **视觉检查**: [描述需要截图确认的 UI 细节]
