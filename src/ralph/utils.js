@@ -19,9 +19,25 @@
 /**
  * 根据选择器列表查找第一个匹配的元素
  * @param {string[]} selectors CSS选择器数组
- * @returns {HTMLElement|null} 找到的元素或null
+ * @param {boolean} [findAll=false] 是否查找所有匹配的元素 (默认 false，仅返回第一个)
+ * @returns {HTMLElement|HTMLElement[]|null} 找到的元素(或元素数组)或null
  */
-function findElement(selectors) {
+function findElement(selectors, findAll = false) {
+  if (findAll) {
+    let allElements = [];
+    for (const selector of selectors) {
+      try {
+        const elements = document.querySelectorAll(selector);
+        if (elements && elements.length > 0) {
+          allElements = allElements.concat(Array.from(elements));
+        }
+      } catch (error) {
+        // 忽略无效选择器
+      }
+    }
+    return allElements.length > 0 ? allElements : null;
+  }
+
   for (const selector of selectors) {
     try {
       const element = document.querySelector(selector);

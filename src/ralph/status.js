@@ -118,7 +118,7 @@ function isAIWorking() {
       '.icube-alert-msg',
       '.latest-assistant-bar',
       '.agent-error-wrap'
-  ], true); // true for all matches
+  ], true) || []; // 确保返回数组，避免 null 导致 TypeError
 
   for (const el of queueAlerts) {
       const text = (el.textContent || '').trim();
