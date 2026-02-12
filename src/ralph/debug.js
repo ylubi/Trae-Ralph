@@ -125,50 +125,23 @@ function addToggleButton() {
 
 /**
  * 暴露调试工具到全局 window 对象
- * @param {ScenarioDetector} detector 场景检测器实例
  */
-function exposeDebugTools(detector) {
-    window.testScenario = function(scenarioId) {
-        const scenario = CONFIG.scenarios[scenarioId];
-        if (!scenario) {
-          console.error('❌ 场景不存在:', scenarioId);
-          console.log('可用场景:', Object.keys(CONFIG.scenarios));
-          return;
+function exposeDebugTools() {
+    window.listTasks = function() {
+        if (window.taskManager) {
+            console.log('📋 当前任务列表:');
+            window.taskManager.tasks.forEach((task, id) => {
+                console.log(`[${id}] ${task.type} - ${task.status}`);
+            });
+        } else {
+            console.log('❌ TraeAgentTaskManager 未初始化');
         }
-        
-        console.log('🧪 测试场景:', scenario.name);
-        console.log('关键词:', scenario.keywords);
-        console.log('动作:', scenario.action);
-        console.log('消息:', scenario.message);
-        
-        const message = detector.getResponse(scenarioId, {});
-        console.log('将发送:', message);
-        
-        return sendMessage(message);
-      };
-      
-      window.listScenarios = function() {
-        console.log('📋 所有场景：');
-        Object.entries(CONFIG.scenarios).forEach(([id, s]) => {
-          console.log(`\n${s.name} (${id})`);
-          console.log(`  启用: ${s.enabled ? '✅' : '❌'}`);
-          console.log(`  优先级: ${s.priority}`);
-          console.log(`  关键词: ${s.keywords?.join(', ') || '无'}`);
-          console.log(`  动作: ${s.action}`);
-        });
-      };
-      
-      window.toggleScenario = function(scenarioId, enabled) {
-        if (CONFIG.scenarios[scenarioId]) {
-            CONFIG.scenarios[scenarioId].enabled = enabled;
-            console.log(`场景 ${scenarioId} 已${enabled ? '启用' : '禁用'}`);
-        }
-      };
+    };
 
-      // 暴露控制函数到 window
-      window.stopLoop = stopLoop;
-      window.startRalphLoop = startLoop;
-      window.toggleRalphLoop = toggleLoop;
+    // 暴露控制函数到 window
+    window.stopLoop = stopLoop;
+    window.startRalphLoop = startLoop;
+    window.toggleRalphLoop = toggleLoop;
 }
 
 module.exports = {

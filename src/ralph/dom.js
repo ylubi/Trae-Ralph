@@ -177,6 +177,46 @@ function getChatContent() {
 }
 
 /**
+ * 获取助手回复总数
+ * @returns {number} 回复数量
+ */
+function getAssistantTurnCount() {
+  return document.querySelectorAll('section.chat-turn.assistant').length;
+}
+
+/**
+ * 获取最后一个回复的唯一签名 (用于状态追踪)
+ * 格式: "Index:TaskID:TaskStatus"
+ * 如果没有 TaskID，则降级为 content hash
+ * @param {Object} taskManager 任务管理器实例，用于获取任务状态
+ * @returns {string|null} 签名字符串，如果无回复返回 null
+ */
+function getLastTurnSignature(taskManager) {
+  const turn = getLastAssistantTurnElement();
+  if (!turn) return null;
+  
+  const count = getAssistantTurnCount();
+  
+  // 1. 尝试获取 data-ralph-task-id
+  // 注意：ID 可能挂在 .ai-agent-task 上，也可能挂在 turn 上（取决于实现）
+  // 目前实现是挂在 .ai-agent-task 上
+  const taskEl = turn.querySelector('.ai-agent-task');
+  const taskId = taskEl ? taskEl.getAttribute('data-ralph-task-id') : null;
+  
+  if (taskId && taskManager) {
+      const task = taskManager.getTask(taskId);
+      const status = task ? task.status : 'UNKNOWN';
+      // 格式: Index:TaskID:Status
+      return `${count}:${taskId}:${status}`;
+  }
+  
+  // 2. 降级方案 (如果还没生成 ID 或不是 Task)
+  const text = (turn.textContent || '').trim();
+  const signature = `${count}:${text.length}:${text.substring(0, 20).replace(/[\r\n]/g, '')}`;
+  return signature;
+}
+
+/**
  * 获取输入框的文本值
  * @param {HTMLElement} input 输入框元素
  * @returns {string} 输入框文本值
@@ -213,6 +253,8 @@ module.exports = {
     getLastAssistantAlertCandidates,
     getLastMessage,
     getChatContent,
+    getAssistantTurnCount,
+    getLastTurnSignature,
     getInputTextValue,
     isSendButtonEnabled
 };

@@ -5,7 +5,7 @@
  * 该模块是 Ralph Loop 的心脏，负责调度整个自动化流程：
  * - 维护主循环 (setInterval)
  * - 管理全局状态 (工作/停止、冷却、稳定计数)
- * - 协调状态检测 (status.js) 和场景响应 (detector.js)
+ * - 协调状态检测 (status.js) 和任务管理 (task-manager.js)
  * - 执行决策逻辑 (是否介入、何时介入、如何介入)
  * - 处理异常保底逻辑 (超时跳过)
  * 
@@ -22,20 +22,27 @@ const {
     isBlockingError 
 } = require('./status');
 const { 
-    getLastChatTurnElement, 
-    getLastMessage, 
-    getChatContent, 
-    getLastAssistantReplyElement, 
-    getTraeWorkflowStatus 
+    getLastAssistantReplyElement,
+    getLastTurnSignature,
+    getAssistantTurnCount
 } = require('./dom');
 const { 
     sendMessage, 
     sendTerminalInput, 
     clickSkipButton,
     clickStopButton,
+    shouldBlockSending,
     resetContextAndContinue
 } = require('./actions');
-const { ScenarioDetector } = require('./detector');
+const taskManager = require('./trae-agent-task-manager');
+if (!taskManager) {
+    console.error('❌ FATAL: TraeAgentTaskManager failed to load!');
+} else {
+    // 暴露给调试工具
+    if (typeof window !== 'undefined') {
+        window.taskManager = taskManager;
+    }
+}
 
 // 全局状态变量
 let checkCount = 0;
@@ -44,8 +51,6 @@ let wasWorking = false;
 let hasEverWorked = false; // 记录是否进行过任务
 let testInterval = null;
 let firstStopTime = null;
-let sentDuringStop = false; // 停止期间仅发送一次
-let processedScenarioDuringStop = false;
 let stopHandled = false;
 let lastActionAt = 0;
 let lastWorkingAt = 0;
@@ -53,13 +58,10 @@ let lastHandledTaskCount = -1; // 改用 task 数量来追踪进度，初始为 
 let lastObservedTaskCount = 0;
 
 // 新增监控变量
-let lastTotalReplyCount = 0;
+let lastTurnSignature = null;
+let lastTurnCount = 0;
 let lastReplyCountChangeTime = Date.now();
 const STALLED_CHECK_INTERVAL = 6 * 60 * 1000; // 6分钟
-
-let skipFallbackTimeout = null;
-
-const detector = new ScenarioDetector();
 
 /**
  * 重置 Ralph 信息（用于新开对话时）
@@ -73,8 +75,6 @@ function resetRalphInfo() {
     wasWorking = false;
     hasEverWorked = false;
     firstStopTime = null;
-    sentDuringStop = false;
-    processedScenarioDuringStop = false;
     stopHandled = false;
     lastActionAt = 0;
     lastWorkingAt = 0;
@@ -82,40 +82,46 @@ function resetRalphInfo() {
     lastObservedTaskCount = 0;
     
     // 重置监控状态
-    lastTotalReplyCount = 0;
+    lastTurnSignature = null;
+    lastTurnCount = 0;
     lastReplyCountChangeTime = Date.now();
-    
-    // 清除可能存在的定时器
-    if (skipFallbackTimeout) {
-        clearTimeout(skipFallbackTimeout);
-        skipFallbackTimeout = null;
-    }
+    lastLogStatus = '';
 }
 
 /**
- * 监控回复总数变化，处理长时间卡死情况
- * @param {number} currentTotalReplyCount 当前回复总数
+ * 监控回复状态变化，处理长时间卡死情况
+ * 改用 Signature 判定，优先使用 TaskID+Status，比单纯的内容哈希更稳定
  */
-function monitorStalledState(currentTotalReplyCount) {
-    // 1. 检测新对话：如果回复数大幅减少（且接近0），视为新对话
-    if (currentTotalReplyCount < lastTotalReplyCount && currentTotalReplyCount <= 1) {
-        resetRalphInfo();
-        lastTotalReplyCount = currentTotalReplyCount;
-        return;
-    }
+function monitorStalledState() {
+    // 传入 taskManager 以便 dom.js 获取任务状态
+    const currentSignature = getLastTurnSignature(taskManager);
+    const currentCount = getAssistantTurnCount();
 
-    // 2. 检测变化
-    if (currentTotalReplyCount !== lastTotalReplyCount) {
-        lastTotalReplyCount = currentTotalReplyCount;
+    // 1. 检测状态变化
+    if (currentSignature !== lastTurnSignature) {
+        // 如果数量重置为低值（且之前有记录），视为新对话
+        // 注意：这里不再依赖 < lastCount，而是只要是低值且签名变了，就可能是新对话
+        // 但为了避免仅仅是第一条消息被修改导致重置，我们加一个 check:
+        // 只有当 lastTurnCount > 1 且 currentCount <= 1 时，才明确是"重置"
+        // 或者 currentCount == 0 (清空)
+        
+        const isReset = (lastTurnCount > 1 && currentCount <= 1) || (currentCount === 0);
+        
+        if (isReset) {
+            resetRalphInfo();
+        }
+
+        lastTurnSignature = currentSignature;
+        lastTurnCount = currentCount;
         lastReplyCountChangeTime = Date.now();
         return;
     }
 
-    // 3. 检测超时（仅当有回复且不为0时，防止在空闲初始状态误触发）
-    if (currentTotalReplyCount > 0) {
+    // 2. 检测超时（仅当有回复时，防止在空闲初始状态误触发）
+    if (currentCount > 0) {
         const idleTime = Date.now() - lastReplyCountChangeTime;
         if (idleTime > STALLED_CHECK_INTERVAL) {
-            console.log(`⚠️ 检测到回复总数 (${currentTotalReplyCount}) 长时间 (${Math.floor(idleTime/60000)}分钟) 未变化，触发保底措施...`);
+            console.log(`⚠️ 检测到最后一条回复 (${currentSignature}) 长时间 (${Math.floor(idleTime/60000)}分钟) 未变化，触发保底措施...`);
             
             // 尝试点击停止按钮
             const stopped = clickStopButton();
@@ -135,79 +141,6 @@ function monitorStalledState(currentTotalReplyCount) {
             }, 1000);
         }
     }
-}
-
-/**
- * 辅助函数：调度保底跳过
- * @param {number} timeoutMs 超时时间(毫秒)，默认 180000 (3分钟)
- */
-function scheduleSkipFallback(timeoutMs = 180000) {
-    const startFirstStop = firstStopTime;
-    const startActionAt = lastActionAt;
-    const startWorkingAt = lastWorkingAt;
-    const initialLastTask = getLastAssistantReplyElement(); // 记录初始的最后一条回复元素
-    
-    // 清除已存在的定时器
-    if (skipFallbackTimeout) {
-        clearTimeout(skipFallbackTimeout);
-    }
-
-    console.log(`⏳ 已启动超时保底计时 (${timeoutMs/1000}秒)...`);
-
-    skipFallbackTimeout = setTimeout(() => {
-      skipFallbackTimeout = null; // 执行后清空引用
-      // 检查 Ralph 循环状态
-      const stillSameStop = firstStopTime === startFirstStop;
-      const noNewAction = lastActionAt === startActionAt;
-      const noWorkResume = lastWorkingAt === startWorkingAt;
-      const isWorkingNow = isAIWorking();
-
-      if (isTaskCompleteBanner() && !isWorkingNow) {
-        const sent = sendContinueOrClickExisting();
-        if (sent) {
-          console.log('✅ 检测到任务完成标记，优先发送“继续”以恢复流程');
-        }
-        return;
-      }
-      
-      // 如果 3 分钟内没有被中断（用户操作、AI恢复工作等）
-      if (!isWorkingNow && stillSameStop && noNewAction && noWorkResume) {
-        console.log('⏳ 保底计时结束，开始重新检测状态...');
-
-        // 1. 检测是否有新的回复产生
-        const currentLastTask = getLastAssistantReplyElement();
-        if (currentLastTask !== initialLastTask) {
-             console.log('⚠️ 检测到已有新的回复产生，取消跳过操作');
-             return;
-        }
-
-        // 2. 检测内容是否仍包含跳过按钮（不再检查文本）
-        const hasSkipButton = currentLastTask && (
-            currentLastTask.querySelector('.icd-run-command-card-v2 .icd-btn-tertiary') || 
-            Array.from(currentLastTask.querySelectorAll('button')).some(b => (b.textContent || '').trim() === '跳过')
-        );
-        
-        if (!hasSkipButton) {
-             console.log('⚠️ 最后一条回复不再包含跳过按钮，取消跳过操作');
-             return;
-        }
-
-        console.log('⏳ 状态确认：仍然卡在同一条回复且包含跳过按钮，尝试点击...');
-        const clicked = clickSkipButton();
-        if (clicked) {
-          console.log('✅ 保底跳过点击成功');
-        } else if (scenario.handler === 'resetContext') {
-        resetContextAndContinue();
-        // 如果是上下文重置，应该也重置 Ralph 信息
-        resetRalphInfo();
-        processedScenarioDuringStop = true;
-    } else {
-          console.log('⚠️ 保底跳过点击失败');
-        }
-      } else {
-        console.log('ℹ️ 3分钟内已恢复/有新操作，跳过保底不会执行。');
-      }
-    }, timeoutMs);
 }
 
 /**
@@ -251,8 +184,6 @@ function isGlobalCooldownActive() {
 
     if (lastActionAt > 0 && now - lastActionAt < globalCooldown) {
         if (!bypassCooldown) {
-            console.log(`⏳ 全局冷却中 (${Math.ceil((globalCooldown - (now - lastActionAt))/1000)}s)...`);
-            console.log(`Ralph 状态: 🔄 工作中 (冷却中)`);
             return true;
         } else {
             console.log('⏳ 冷却绕过: 检测到确认弹窗或待确认删除，允许继续检测以衔接二次确认');
@@ -261,13 +192,19 @@ function isGlobalCooldownActive() {
     return false;
 }
 
+let lastLogStatus = '';
+
 /**
  * 更新并打印状态图标
  * @param {boolean} working AI是否正在工作
  */
 function logStatus(working) {
-    const statusIcon = working ? '🔄 工作中' : (testInterval ? '⏸️ 监控中(已停止)' : '⏹️ 已停止');
-    console.log(`Ralph 状态: ${statusIcon}`);
+    const statusIcon = working ? '🔄 工作中' : (testInterval ? '⏸️ 监控中(AI空闲)' : '⏹️ 脚本已停止');
+    // 仅在状态变化时打印，减少日志刷屏
+    if (statusIcon !== lastLogStatus) {
+        console.log(`Ralph 状态: ${statusIcon}`);
+        lastLogStatus = statusIcon;
+    }
 }
 
 /**
@@ -280,7 +217,6 @@ function handleWorkingState(currentTaskCount) {
     wasWorking = true;
     hasEverWorked = true; // 标记已开始工作
     sentDuringStop = false; // 恢复工作后重置发送标记
-    processedScenarioDuringStop = false;
     stopHandled = false;
     lastWorkingAt = Date.now();
     lastObservedTaskCount = currentTaskCount;
@@ -311,7 +247,6 @@ function processStoppedState(currentTaskCount, blocking) {
         stableCount = 0;
         firstStopTime = null;
         sentDuringStop = false;
-        processedScenarioDuringStop = false;
         stopHandled = false;
     }
     
@@ -344,8 +279,6 @@ function processStoppedState(currentTaskCount, blocking) {
     }
 
     const stoppedDuration = Date.now() - firstStopTime;
-    console.log(`稳定计数: ${stableCount}/${CONFIG.stableCount}`);
-    console.log(`停止时长: ${Math.floor(stoppedDuration / 1000)}秒`);
     
     // 5. 达到稳定状态，执行场景检测
     if (stableCount >= CONFIG.stableCount) {
@@ -355,254 +288,9 @@ function processStoppedState(currentTaskCount, blocking) {
         stopHandled = true;
         lastHandledTaskCount = currentTaskCount; // 更新已处理的任务计数
         console.log('');
-        console.log('✅ 检测到 AI 已停止');
-        
-        runScenarioDetection(stoppedDuration);
+        console.log('✅ AI 处于空闲状态，准备扫描任务');
         
         wasWorking = false;
-    }
-}
-
-/**
- * 执行场景检测与响应
- * @param {number} stoppedDuration 停止时长
- */
-function runScenarioDetection(stoppedDuration) {
-    // 1. 检查最后一条消息是否是用户的
-    const lastTurn = getLastChatTurnElement();
-    if (lastTurn && lastTurn.classList.contains('user')) {
-        console.log('⏳ 最后一条消息是用户发送的，等待 AI 响应...');
-        return;
-    }
-
-    const lastMessage = getLastMessage();
-    const chatContent = getChatContent();
-    
-    const result = detector.detect({
-        lastMessage,
-        chatContent,
-        stoppedDuration,
-        hasEverWorked
-    });
-    
-    if (result.detected) {
-        handleDetectedScenario(result, lastMessage);
-    } else {
-        handleNoScenarioMatch();
-    }
-    
-    processedScenarioDuringStop = true;
-}
-
-/**
- * 处理已检测到的场景
- * @param {Object} result 检测结果
- * @param {string} lastMessage 最后一条消息
- */
-function handleDetectedScenario(result, lastMessage) {
-    const scenario = result.scenarioConfig;
-    
-    // 检查是否在停止期间已处理过非确认类场景
-    const isConfirmScenario = scenario.isConfirm || 
-                            (scenario.id || '').includes('Confirm') || 
-                            (scenario.name || '').includes('Confirm') ||
-                            (scenario.name || '').includes('确认');
-
-    if (processedScenarioDuringStop && !isConfirmScenario) {
-        console.log(`⏳ 本次停止期间已处理过场景，且当前场景 ${scenario.name} 不是确认类操作，跳过`);
-        return;
-    }
-
-    const responseConfig = scenario.response || {};
-    const action = scenario.action || responseConfig.action;
-    const targetSelector = scenario.target || responseConfig.target;
-    const matchText = scenario.matchText || responseConfig.matchText;
-    const waitTime = scenario.waitTime || responseConfig.waitTime;
-
-    detector.markTriggered(result.scenario);
-
-    console.log(`🎯 检测到场景: ${scenario.name}`);
-    console.log(`   匹配类型: ${result.matchInfo.type}`);
-    
-    if (action === 'wait') {
-        executeWaitAction(waitTime, result.scenario, lastMessage);
-    } else if (action === 'stop') {
-        if (CONFIG.noStopMode) {
-            console.log(`🔄 [NoStop模式] 检测到停止信号 (${scenario.name})，但继续运行...`);
-            // 为了避免立即再次触发（如果文案没变），可以稍微等待一下，或者依赖 detector 的去重机制
-            // 但如果 XML 状态一直存在，去重机制可能已经标记为 triggered。
-            // 只要我们不清除 triggered 状态，它应该不会立即重复触发同一个 scenario（取决于 detector 实现）。
-            // 不过 detector.markTriggered(result.scenario) 已经在上面调用了。
-        } else {
-            console.log(`🛑 检测到停止信号 (${scenario.name})，停止 Ralph Loop。`);
-            console.log('🎉 Mission Complete!');
-            stopLoop();
-        }
-    } else if (action === 'log') {
-        const message = detector.getResponse(result.scenario, { lastMessage });
-        console.log(message);
-    } else if (action === 'click') {
-        executeClickAction(targetSelector, matchText, result.matchInfo);
-    } else if (action === 'custom') {
-        executeCustomAction(scenario, result.scenario, lastMessage);
-    } else {
-        // default send
-        executeSendAction(detector.getResponse(result.scenario, { lastMessage }));
-    }
-}
-
-/**
- * 执行等待动作
- * @param {number} waitTime 等待时间(毫秒)
- * @param {string} scenarioId 场景ID
- * @param {string} lastMessage 最后一条消息
- */
-function executeWaitAction(waitTime, scenarioId, lastMessage) {
-    const waitSec = Math.floor(waitTime / 1000);
-    console.log(`⏳ 等待 ${waitSec} 秒后继续...`);
-    setTimeout(() => {
-        const message = detector.getResponse(scenarioId, { lastMessage });
-        if (!sentDuringStop) {
-            sendMessage(message);
-            lastActionAt = Date.now();
-            sentDuringStop = true;
-            console.log(`✅ 已发送: "${message}" (停止期间仅发送一次)`);
-        } else {
-            console.log('⏳ 已在本次停止期间发送过消息，跳过重复发送');
-        }
-    }, waitTime);
-}
-
-/**
- * 执行点击动作
- * @param {string} targetSelector 目标选择器
- * @param {string} matchText 匹配文本
- * @param {Object} matchInfo 匹配信息
- */
-function executeClickAction(targetSelector, matchText, matchInfo) {
-    if (targetSelector) {
-        console.log(`🖱️ 尝试点击元素: ${targetSelector}${matchText ? ` (文本匹配: "${matchText}")` : ''}`);
-        
-        let targetEl = null;
-        
-        const checkTextMatch = (el) => {
-            if (!matchText) return true;
-            const content = (el.textContent || '').trim();
-            return content === matchText || content.includes(matchText);
-        };
-
-        if (matchInfo && matchInfo.element) {
-            try {
-                let current = matchInfo.element;
-                let depth = 0;
-                const maxDepth = 8;
-                
-                while (current && depth < maxDepth) {
-                    if (current.matches && current.matches(targetSelector) && checkTextMatch(current)) {
-                        targetEl = current;
-                        break;
-                    }
-                    
-                    const candidates = Array.from(current.querySelectorAll(targetSelector));
-                    const found = candidates.find(el => checkTextMatch(el));
-                    
-                    if (found) {
-                        targetEl = found;
-                        break;
-                    }
-                    
-                    current = current.parentElement;
-                    depth++;
-                }
-            } catch(e) { console.error('相对查找失败:', e); }
-        }
-
-        if (!targetEl) {
-            const candidates = Array.from(document.querySelectorAll(targetSelector));
-            targetEl = candidates.find(el => checkTextMatch(el));
-        }
-
-        if (targetEl) {
-            targetEl.click();
-            lastActionAt = Date.now();
-            console.log('✅ 点击成功');
-        } else {
-            console.error(`❌ 无法点击: 未找到目标元素 ${targetSelector}`);
-        }
-    } else {
-        console.error('❌ 点击操作未配置 target');
-    }
-}
-
-/**
- * 执行自定义动作
- * @param {Object} scenario 场景配置
- * @param {string} scenarioId 场景ID
- * @param {string} lastMessage 最后一条消息
- */
-function executeCustomAction(scenario, scenarioId, lastMessage) {
-    if (scenario.handler === 'skipAfterTimeout') {
-        console.log('⏳ 检测到可跳过的终端命令，启动3分钟保底跳过');
-        scheduleSkipFallback(180000);
-        processedScenarioDuringStop = true;
-    } else if (scenario.handler === 'rapidInteractiveInput') {
-        executeRapidInteractiveInput(scenario);
-        processedScenarioDuringStop = true;
-    } else if (scenario.handler === 'resetContext') {
-        resetContextAndContinue();
-        processedScenarioDuringStop = true;
-    } else {
-        const message = detector.getResponse(scenarioId, { lastMessage });
-        console.log(`💡 准备发送: "${message}"`);
-        
-        // 允许重复发送的条件：场景配置了 repeatable: true
-        const allowRepeat = scenario.repeatable === true;
-        
-        if (!sentDuringStop || allowRepeat) {
-            const sent = sendTerminalInput(message) || sendMessage(message);
-            if (sent) {
-                lastActionAt = Date.now();
-                sentDuringStop = true; // 仍然标记为 true，但 allowRepeat 会绕过检查
-                console.log(`✅ 消息已发送 ${allowRepeat ? '(重复模式)' : '(停止期间仅发送一次)'}`);
-            }
-        } else {
-            console.log('⏳ 已在本次停止期间发送过消息，跳过重复发送');
-        }
-    }
-}
-
-/**
- * 执行发送动作
- * @param {string} message 消息内容
- */
-function executeSendAction(message) {
-    console.log(`💡 准备发送: "${message}"`);
-    if (!sentDuringStop) {
-        const sent = message === '继续' ? sendContinueOrClickExisting() : sendMessage(message);
-        if (sent) {
-            lastActionAt = Date.now();
-            sentDuringStop = true;
-            console.log('✅ 消息已发送 (停止期间仅发送一次)');
-        }
-    } else {
-        console.log('⏳ 已在本次停止期间发送过消息，跳过重复发送');
-    }
-}
-
-/**
- * 处理无场景匹配的情况
- */
-function handleNoScenarioMatch() {
-    console.log('💡 未匹配特定场景，发送默认"继续"');
-    if (!sentDuringStop) {
-        const sent = sendContinueOrClickExisting();
-        if (sent) {
-            lastActionAt = Date.now();
-            sentDuringStop = true;
-            console.log('✅ 已发送默认继续 (停止期间仅发送一次)');
-        }
-    } else {
-        console.log('⏳ 已在本次停止期间发送过消息，跳过重复发送');
     }
 }
 
@@ -611,40 +299,187 @@ function handleNoScenarioMatch() {
  */
 function runLoopIteration() {
     checkCount++;
-      
-    console.log(`\n[检查 ${checkCount}] ${new Date().toLocaleTimeString()}`);
     
-    // 0. 全局冷却检查
-    if (isGlobalCooldownActive()) return;
+    // 0. 全局冷却检查 (保留，用于限制发送频率，但对于 OP 操作会绕过)
+    // 注意：已移至 P0 任务检测之后，确保关键任务不受冷却限制。
+
+    // ==========================================
+    // Priority 0+: 全局阻断 (Global Blockers)
+    // 检查是否存在模态弹窗、交互输入或任务完成状态
+    // ==========================================
+    const globalOp = taskManager.getGlobalOp();
+    if (globalOp) {
+        console.log(`⚡ [P0+] 全局阻断操作: ${globalOp.description}`);
+        
+        if (globalOp.type === taskManager.TYPES.OP_CLICK && globalOp.element) {
+            globalOp.element.click();
+        } else if (globalOp.type === taskManager.TYPES.OP_TERMINAL) {
+            sendTerminalInput(globalOp.payload || 'y');
+        } else if (globalOp.type === taskManager.TYPES.OP_REPLY) {
+            sendMessage(CONFIG.messages.continue);
+        }
+        
+        stableCount = 0; // 重置稳定计数
+        lastActionAt = Date.now();
+        return; // 立即结束本次循环
+    }
+
+    // ==========================================
+    // Priority 0: 关键操作 (Critical Ops)
+    // 检查是否有待处理的操作类任务
+    // ==========================================
+    
+    // 1. 更新任务管理器 (扫描 DOM, 注入 ID, 更新状态)
+    taskManager.update();
+    
+    // 2. 获取下一个挂起的操作 (Priority: TERMINAL > CLICK > RESTART > REPLY)
+    const pendingOp = taskManager.getNextPendingOp();
+    
+    if (pendingOp) {
+        console.log(`⚡ [P0] 发现挂起操作任务: ${pendingOp.id} (${pendingOp.type})`);
+        handlePendingTask(pendingOp);
+        
+        // 操作后立即重置状态，以便快速响应下一个动作
+        stableCount = 0;
+        lastActionAt = Date.now();
+        return;
+    }
+
+    // 如果没有 P0+ 或 P0 任务，才检查冷却，防止 P2 监控过于频繁
+    // 注意：不再此处 return，允许执行监控逻辑，仅在 monitorBackups 中应用冷却
+
 
     const working = isAIWorking();
     logStatus(working);
     
     const currentTaskCount = document.getElementsByClassName('ai-agent-task').length;
-    const blocking = isBlockingError();
-
+    
+    // 如果 AI 正在工作，更新状态并返回
     if (working) {
         handleWorkingState(currentTaskCount);
-    } else {
-        processStoppedState(currentTaskCount, blocking);
+        return;
     }
 
-    // 2. 监控回复总数变化（独立于工作状态，作为全局保底）
-    const totalReplyCount = document.querySelectorAll('section.chat-turn.assistant').length;
-    monitorStalledState(totalReplyCount);
+    // ==========================================
+    // Priority 2: 保底监控 (Backup Monitor)
+    // 仅在 AI 停止时运行
+    // ==========================================
+    processStoppedState(currentTaskCount, false); // 不再传入 blocking 参数，由 monitorBackups 处理
+    
+    // 监控回复总数变化（独立于工作状态，作为全局保底）
+    monitorStalledState();
+    
+    // 额外的保底检查 (发送按钮禁用继续等)
+    monitorBackups();
+}
+
+/**
+ * 处理挂起任务的分发逻辑
+ * @param {Object} task 
+ */
+function handlePendingTask(task) {
+    const el = task.element;
+    
+    switch (task.type) {
+        case taskManager.TYPES.OP_TERMINAL:
+        case taskManager.TYPES.OP_CLICK:
+        case taskManager.TYPES.OP_RESTART:
+            // 尝试点击最佳按钮
+            const targetBtn = el.querySelector('.icd-btn-primary') || 
+                            el.querySelector('.icd-run-command-card-v2-actions-btn-run') ||
+                            el.querySelector('.icube-alert-action') ||
+                            el.querySelector('.icd-btn-tertiary') || // 跳过按钮 (v2-cwd)
+                            Array.from(el.querySelectorAll('button')).find(b => (b.textContent || '').trim() === '跳过') ||
+                            el.querySelector('button');
+            
+            if (targetBtn) {
+                console.log(`👆 自动点击按钮: ${targetBtn.className} (Type: ${task.type})`);
+                targetBtn.click();
+                
+                // 标记为验证中
+                // OP_RESTART 使用 30s 验证 (等待 AI 运行)，其他使用 10s (等待按钮消失)
+                const timeout = task.type === taskManager.TYPES.OP_RESTART ? 30000 : 10000;
+                taskManager.markAsVerifying(task.id, timeout);
+            } else {
+                console.warn(`⚠️ 任务 ${task.id} 未找到可点击按钮，标记为 SKIPPED`);
+                taskManager.markAsSkipped(task.id);
+            }
+            break;
+            
+        case taskManager.TYPES.OP_REPLY:
+                    // 发送回复
+                    const message = CONFIG.messages.continue;
+                                   
+                    console.log(`💬 自动回复: "${message}"`);
+                    sendMessage(message);
+                    
+                    // 标记为验证中 (等待发送按钮变态，超时 30s)
+                    taskManager.markAsVerifying(task.id, 30000);
+                    break;
+
+        case taskManager.TYPES.OP_RESET_CONTINUE:
+            console.log(`🔄 执行重置并继续流程: ${task.id}`);
+            // 使用 actions.js 中封装好的 resetContextAndContinue
+            resetContextAndContinue().then(success => {
+                if (success) {
+                    // 标记为验证中 (等待 AI 进入运行状态, 超时 30s)
+                    taskManager.markAsVerifying(task.id, 30000);
+                } else {
+                    console.error('❌ 重置流程启动失败');
+                    taskManager.markAsIgnored(task.id);
+                }
+            });
+            break;
+            
+        default:
+            console.warn(`❓ 未知任务类型: ${task.type}`);
+            taskManager.markAsIgnored(task.id);
+    }
+}
+
+/**
+ * 额外的保底监控
+ */
+function monitorBackups() {
+    // 检查冷却，防止频繁触发保底操作
+    if (isGlobalCooldownActive()) return;
+
+    // 1. 发送按钮禁用继续 (sendButtonDisabledContinue)
+    // 如果发送按钮被禁用，且不是因为 AI 正在生成，且 Ralph 正在运行
+    // 尝试发送 "继续" 以激活状态 (利用 triggerSendAction 的回车降级策略)
+    const sendButton = document.querySelector('.chat-input-v2__actions-btn-send');
+    const isSendDisabled = sendButton && sendButton.disabled;
+    
+    if (isSendDisabled && !isAIWorking() && testInterval) {
+        console.log('⚠️ 检测到发送按钮禁用但 Ralph 已开启，尝试强制发送继续...');
+        sendMessage(CONFIG.messages.continue);
+    }
+
+    // 2. 任务完成确认检查 (taskCompletedConfirmCheck)
+    if (isTaskCompleteBanner()) {
+        console.log('✅ 检测到任务完成标记，发送“继续”以确认');
+        sendMessage(CONFIG.messages.continue);
+    }
 }
 
 /**
  * 启动 Ralph 循环
  */
 function startLoop() {
+    if (!taskManager) {
+        console.error('❌ 无法启动 Ralph: TraeAgentTaskManager 未初始化');
+        return;
+    }
     if (testInterval) {
       console.log('ℹ️ Ralph 循环已在运行');
       return;
     }
-    console.log('🚀 开始监控...');
+    console.log('🚀 开始监控 (TraeAgentTaskManager v2)...');
     console.log('');
-    console.log('📋 已启用场景：');
+    console.log('📋 任务管理系统已就绪');
+    console.log('   - 优先级管道: P0+(Block) -> P0(Ops) -> P2(Monitor)');
+    console.log('   - 任务分类: Click / Terminal / Reply / Restart / Interactive');
+    console.log('');
     
     // 更新按钮状态
     if (window.$ralphToggleBtn) {
@@ -653,13 +488,6 @@ function startLoop() {
         window.$ralphToggleBtn.setAttribute('data-state', 'running');
       } catch(e) {}
     }
-    
-    Object.entries(CONFIG.scenarios)
-      .filter(([_, s]) => s.enabled)
-      .forEach(([id, s]) => {
-        console.log(`  - ${s.name} (优先级: ${s.priority})`);
-      });
-    console.log('');
     
     testInterval = setInterval(runLoopIteration, CONFIG.checkInterval);
     // 保存到 window 以便外部访问
@@ -674,7 +502,6 @@ function stopLoop() {
       clearInterval(testInterval);
       testInterval = null;
       window._ralphLoopInterval = null;
-      stopRapidInput(); // 同时停止可能存在的快速输入循环
       resetState(); // 重置所有状态
       console.log('⏹️ 循环已停止');
       if (window.$ralphToggleBtn) {
@@ -684,89 +511,6 @@ function stopLoop() {
         } catch(e) {}
       }
     }
-}
-
-/**
- * 停止快速输入循环
- */
-function stopRapidInput() {
-    if (window._ralphRapidInputInterval) {
-        clearInterval(window._ralphRapidInputInterval);
-        window._ralphRapidInputInterval = null;
-        console.log('⏹️ 快速交互输入循环已终止');
-    }
-}
-
-/**
- * 执行快速交互输入（连续回车）
- * @param {Object} scenario 场景配置
- */
-function executeRapidInteractiveInput(scenario) {
-    console.log('🚀 启动快速交互输入模式 (检测 xterm-helper-textarea)...');
-    
-    // 防止重复启动
-    if (window._ralphRapidInputInterval) {
-        clearInterval(window._ralphRapidInputInterval);
-    }
-
-    // 标记为已发送，避免主循环重复触发
-    sentDuringStop = true;
-    lastActionAt = Date.now();
-
-    // 启动保底跳过计时 (复用 terminalLongWaitSkip 的逻辑)
-    console.log('⏳ 检测到交互式命令，同时启动3分钟保底跳过');
-    scheduleSkipFallback(180000);
-
-    // 使用 TurnElement 而不是 ReplyElement，因为后者可能无法覆盖整个轮次的变化
-    const initialTurn = getLastChatTurnElement(); 
-    let count = 0;
-    let missingInputCount = 0; // 输入框丢失计数
-    const maxCount = 60; // 最多尝试 60 次 (约 30 秒)
-    
-    const checkAndSend = () => {
-        // 1. 检查回复是否变化（产生了新回复）
-        // 注意：这里检查的是"最后一个轮次"是否发生了变化（即有了新的轮次）
-        const currentTurn = getLastChatTurnElement();
-        if (currentTurn !== initialTurn) {
-             console.log('✅ 检测到新回复产生，停止快速输入');
-             stopRapidInput();
-             return;
-        }
-
-        // 2. 检查输入框是否存在
-        const input = document.querySelector('.xterm-helper-textarea');
-        if (!input) {
-            missingInputCount++;
-            if (missingInputCount > 3) { // 允许短暂消失 (3次检查 = 1.5秒)
-                console.log('✅ 交互输入框已消失超过1.5秒，停止快速输入');
-                stopRapidInput();
-                return;
-            }
-            console.log(`⏳ 输入框暂时消失 (${missingInputCount}/3)，等待...`);
-            return; // 本次跳过发送，但继续循环
-        }
-        
-        // 重置丢失计数
-        missingInputCount = 0;
-
-        // 3. 检查最大次数
-        if (count >= maxCount) {
-             console.log('⚠️ 达到最大交互次数限制，停止快速输入');
-             stopRapidInput();
-             return;
-        }
-
-        // 4. 发送回车
-        console.log(`👉 快速输入回车 (${count + 1}/${maxCount})`);
-        sendTerminalInput(''); // 仅发送回车键，不需要字符内容
-        count++;
-    };
-
-    // 立即执行一次
-    checkAndSend();
-    
-    // 启动循环 (500ms 间隔)
-    window._ralphRapidInputInterval = setInterval(checkAndSend, 500);
 }
 
 /**
@@ -795,21 +539,12 @@ function resetState() {
     hasEverWorked = false;
     firstStopTime = null;
     sentDuringStop = false;
-    processedScenarioDuringStop = false;
     stopHandled = false;
     lastActionAt = 0;
     lastWorkingAt = 0;
-    lastHandledTaskCount = 0;
+    lastHandledTaskCount = -1;
     lastObservedTaskCount = 0;
-    
-    // 重置检测器状态
-    detector.reset();
-    
-    // 清除保底跳过定时器
-    if (skipFallbackTimeout) {
-        clearTimeout(skipFallbackTimeout);
-        skipFallbackTimeout = null;
-    }
+    lastLogStatus = '';
     
     console.log('🧹 全局状态已重置');
 }
@@ -817,6 +552,5 @@ function resetState() {
 module.exports = {
     startLoop,
     stopLoop,
-    toggleLoop,
-    detector
+    toggleLoop
 };

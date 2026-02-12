@@ -290,7 +290,10 @@ function clickSkipButton() {
       
       for (const sel of selectors) {
           const btns = Array.from(card.querySelectorAll(sel));
-          const target = btns.find(btn => (btn.textContent || '').includes('跳过'));
+          const target = btns.find(btn => {
+              const text = (btn.textContent || '').trim();
+              return text.includes('跳过') || text.includes('Skip');
+          });
           if (target) {
               target.click();
               console.log(`✅ 已点击跳过按钮 (selector: ${sel})`);

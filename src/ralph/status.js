@@ -111,6 +111,23 @@ function isAIWorking() {
       return false;
   }
   
+  // 2.1 检查排队状态 (Queue Up Check) - 全局扫描
+  // 这种信息可能出现在 .latest-assistant-bar 或 .agent-error-wrap 中，也可能在 alert 中
+  const queueAlerts = findElement([
+      '.icube-alert-title', 
+      '.icube-alert-msg',
+      '.latest-assistant-bar',
+      '.agent-error-wrap'
+  ], true); // true for all matches
+
+  for (const el of queueAlerts) {
+      const text = (el.textContent || '').trim();
+      if (text.includes('排队') && text.includes('请求量较高')) {
+           console.log('⏳ [Global] 检测到排队提醒，视为 AI 忙碌中...');
+           return true;
+      }
+  }
+  
   if (isChatIdleState()) return false;
   
   // 3. 降级到默认检查
@@ -137,6 +154,15 @@ function isAIWorking() {
   // 特殊情况：如果显示"正在等待你的操作"，说明不是忙碌状态，而是等待交互
   if (loading) {
     const text = loading.textContent || '';
+    
+    // 检查是否为“排队中” (Queue Up)
+    // 这种情况下，虽然有 loading 或相关提示，但我们应该视为 AI 正在忙碌（在排队），
+    // 从而阻止 monitorBackups 触发保底操作。
+    if (text.includes('排队') || text.includes('queue') || text.includes('请求量较高')) {
+        console.log('⏳ 检测到排队提醒，视为 AI 忙碌中 (Blocking backups)...');
+        return true;
+    }
+
     // 如果是 "正在等待你的操作" 或 "命令运行中"，则不视为忙碌 (这是需要交互或监控的状态)
           if (text.includes('正在等待你的操作') || 
               text.includes('Waiting for your operation') ||

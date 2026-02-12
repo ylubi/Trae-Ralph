@@ -245,10 +245,6 @@ async function injectScript() {
             log('✅ 已连接', 'green');
             log('');
             
-            // 加载场景配置
-            const scenarioLoader = require(path.join(__dirname, 'scenarios/loader.js'));
-            const scenariosConfig = scenarioLoader.generateBrowserConfig();
-            
             // 加载选择器定义
             const selectorsScript = fs.readFileSync(
                 path.join(__dirname, 'editor-api/selectors.js'), 
@@ -261,7 +257,6 @@ async function injectScript() {
             const script = build({
                 checkInterval: CONFIG.checkInterval,
                 stableCount: CONFIG.stableCount,
-                scenarios: scenariosConfig,
                 selectors: selectorsScript,
                 noStopMode: CONFIG.noStopMode
             });

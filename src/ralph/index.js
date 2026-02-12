@@ -17,7 +17,7 @@
 // 实际运行时，会将所有模块合并为一个文件注入到浏览器
 
 const { CONFIG } = require('./config');
-const { startLoop, stopLoop, detector } = require('./main');
+const { startLoop, stopLoop } = require('./main');
 const { addToggleButton, exposeDebugTools } = require('./debug');
 
 // 自动启动
@@ -31,7 +31,7 @@ const { addToggleButton, exposeDebugTools } = require('./debug');
   console.log('');
   
   // 暴露调试工具
-  exposeDebugTools(detector);
+  exposeDebugTools();
   
   // 添加 UI 按钮
   addToggleButton();

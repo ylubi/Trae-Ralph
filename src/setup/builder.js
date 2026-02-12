@@ -20,7 +20,12 @@ const ORDER = [
     'dom.js',
     'status.js',
     'actions.js',
-    'detector.js',
+    'scenarios/defs/reply.js',
+    'scenarios/defs/terminal.js',
+    'scenarios/defs/click.js',
+    'scenarios/defs/restart.js',
+    'scenarios/index.js',
+    'trae-agent-task-manager.js',
     'main.js',
     'debug.js',
     'index.js'
@@ -38,15 +43,29 @@ const modules = {};
 const require = (name) => {
     // 简单的模块解析
     const key = name.replace('./', '').replace('.js', '');
-    return modules[key];
+    if (modules[key]) return modules[key];
+    
+    // 尝试后缀匹配 (处理嵌套引用，如 ./defs/reply -> scenarios/defs/reply)
+    const suffixMatch = Object.keys(modules).find(k => k.endsWith('/' + key) || k === key);
+    if (!suffixMatch) {
+        console.warn(\`[RalphRequire] ⚠️ Module not found: \${name} (key: \${key})\`);
+        console.log('[RalphRequire] Available modules:', Object.keys(modules));
+    }
+    return suffixMatch ? modules[suffixMatch] : undefined;
 };
 const module = { exports: {} };
 
 // 定义模块注册函数
 function defineModule(name, fn) {
+    // console.log(\`[RalphLoader] Defining module: \${name}\`);
     const module = { exports: {} };
-    fn(require, module, module.exports);
-    modules[name] = module.exports;
+    try {
+        fn(require, module, module.exports);
+        modules[name] = module.exports;
+        // console.log(\`[RalphLoader] ✅ Module defined: \${name}\`);
+    } catch (e) {
+        console.error(\`[RalphLoader] ❌ Error defining module \${name}:\`, e);
+    }
 }
 \n`;
 
@@ -85,17 +104,6 @@ function defineModule(name, fn) {
     if (options.noStopMode) {
         console.log(`⚙️ 配置 noStopMode: ${options.noStopMode}`);
         bundle = bundle.replace('noStopMode: false', `noStopMode: ${options.noStopMode}`);
-    }
-    
-    if (options.scenarios) {
-        console.log('⚙️ 注入场景配置');
-        const scenariosJson = JSON.stringify(options.scenarios, null, 2);
-        // 使用 JSON.stringify 的结果，并确保替换安全
-        // 注意：这里假设代码中存在 "const SCENARIOS_PLACEHOLDER = null;"
-        bundle = bundle.replace(
-            'const SCENARIOS_PLACEHOLDER = null;', 
-            `const SCENARIOS_PLACEHOLDER = ${scenariosJson};`
-        );
     }
     
     if (options.selectors) {
