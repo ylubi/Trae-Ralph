@@ -17,8 +17,17 @@
 - **迭代名称**: feature-auth
 - **规划路径**: docs/planning/feature-auth/
 - **任务文件**: docs/planning/feature-auth/04-ralph-tasks.md
+- **测试文件**: docs/planning/feature-auth/05-test-plan.md
+- **任务规范**: .trae/rules/ralph-task-management.md
+- **测试规范**: .trae/rules/ralph-testing-mode.md
+- **行为规范**: .trae/rules/ralph-agent-mode.md
+- **引导规范**: .trae/rules/ralph-entry-rules.md
 - **经验文件**: docs/planning/feature-auth/06-learnings.md
 - **上次更新**: 2023-10-27 14:30
+
+## 🔄 当前迭代状态 (Current Iteration Status)
+- **当前任务**: 进行中
+- **当前测试**: 未开始
 
 ## 📝 全局备忘录 (Global Context)
 (此区域已弃用，请使用 `docs/planning/<当前迭代>/06-learnings.md` 记录经验)
@@ -56,7 +65,10 @@
 
 - **经验沉淀**: 发现新坑，**立即**更新 `06-learnings.md`。
 
-- **阶段切换**: 当所有任务都完成后，**必须**参考 `ralph-testing-mode.md` 进入独立测试阶段。
+- **阶段切换**: 当所有任务都完成后，**必须**执行以下操作：
+  1. 更新 `RALPH_STATE.md` 中的 `当前任务` 为 `完成`。
+  2. 参考 `ralph-testing-mode.md` 进入独立测试阶段。
+  3. 更新 `RALPH_STATE.md` 中的 `当前测试` 为 `进行中`。
 
 ## 3. 提交规范 (Git Integration)
 - 提交时应包含迭代前缀。

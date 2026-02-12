@@ -66,13 +66,13 @@
 **用户**: "实现用户登录功能"
 
 **Ralph Agent**:
-1. 读取 `RALPH_STATE.md` 确定当前任务文件。
+1. 读取 `RALPH_STATE.md` 确定当前任务文件和测试文件。
 2. 读取 `docs/planning/<当前迭代>/06-learnings.md` 复习项目约定。
 3. 读取任务文件 `docs/planning/<当前迭代>/04-ralph-tasks.md`，找到：
    - [x] 设计数据库 Schema
    - [ ] 创建 User Model (<- Start Here)
 4. 执行任务（创建 User Model）。
-5. 验证代码。
+5. 验证代码（运行 `docs/planning/<当前迭代>/05-test-plan.md` 中定义的相关测试）。
 6. (可选) 发现数据库字段命名坑，更新 `06-learnings.md`。
 7. 更新 `docs/planning/feature-auth/04-ralph-tasks.md`，打钩 `[x]`。
 8. 输出状态：

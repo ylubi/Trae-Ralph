@@ -114,8 +114,17 @@ const ralphStateTemplate = `# Ralph 状态指针
 - **迭代名称**: [Idle]
 - **规划路径**: [None]
 - **任务文件**: [None]
+- **测试文件**: [None]
+- **任务规范**: .trae/rules/ralph-task-management.md
+- **测试规范**: .trae/rules/ralph-testing-mode.md
+- **行为规范**: .trae/rules/ralph-agent-mode.md
+- **引导规范**: .trae/rules/ralph-entry-rules.md
 - **经验文件**: [None]
 - **上次更新**: ${new Date().toISOString()}
+
+## 🔄 当前迭代状态 (Current Iteration Status)
+- **当前任务**: 未开始
+- **当前测试**: 未开始
 
 ## 📝 全局备忘录 (Global Context)
 - 暂无 (请查看各迭代目录下的 06-learnings.md)
