@@ -22,6 +22,7 @@
 
 ### 2.2 执行测试 (Execution Standards)
 -   **全量回归**: 运行所有层级的自动化测试（Unit + Integration + E2E）。
+-   **实时记录 (Real-time Recording)**: 每通过一个测试套件（Test Suite）或验证项，**必须立即**更新 `05-test-plan.md`，将对应的 `[ ]` 改为 `[x]`。禁止等到全部跑完再批量打钩。
 -   **非交互原则**: 
     -   严禁使用 `npm start` 或 `npm test` (watch mode)。
     -   **必须**使用 CI 模式参数，例如：
