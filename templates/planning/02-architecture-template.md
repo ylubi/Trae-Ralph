@@ -1,5 +1,13 @@
 # 系统架构设计 (System Architecture)
 
+<!-- 
+AI 指令: 
+1. 若为 Web 项目，**必须**激活 `ralph-web-architecture` Skill。
+2. **惯例优先**: 若需求文档明确了框架（如 Next.js/FastAPI），必须严格遵循该框架的官方最佳实践（目录结构、路由方式、数据获取）。
+3. 必须定义前端组件策略 (Atomic/Smart-Dumb)、状态管理边界。
+4. 必须提供数据库 ERD 描述和 API 详细规范。
+-->
+
 ## 1. 技术栈 (Tech Stack)
 
 ### 1.1 前端

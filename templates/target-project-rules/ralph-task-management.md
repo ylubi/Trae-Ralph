@@ -28,6 +28,13 @@
 ## 🔄 当前迭代状态 (Current Iteration Status)
 - **当前任务**: 未开始 | 进行中 | 完成
 - **当前测试**: 未开始 | 进行中 | 完成
+> **Strict Mode**: 必须严格实时管理 4-ralph-tasks.md、05-test-plan.md 文档中的状态，严禁在最后统一批量修改。
+
+## 🚦 状态流转规则 (State Transition Rules)
+> **AI 必读 (Critical Instruction)**: 
+> 1. 如果 `当前任务` = `完成` 且 `当前测试` != `完成`，**必须**立即进入测试阶段。
+> 2. **禁止**在测试完成前进行任何部署或交付操作。
+> 3. 下一步行动: 读取 `测试文件` (05-test-plan.md)，执行全量回归测试。
 
 ## 📝 全局备忘录 (Global Context)
 (此区域已弃用，请使用 `docs/planning/<当前迭代>/06-learnings.md` 记录经验)
