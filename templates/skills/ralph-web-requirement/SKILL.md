@@ -10,8 +10,19 @@ description: Ralph 流程专用：在 Web 项目规划阶段，强制生成包�
 ## 🎯 触发条件 (Trigger)
 -   **环境**: Ralph Flow
 -   **项目类型**: Web 项目
--   **阶段**: 规划阶段 (Planning Mode)
--   **文件**: 处理 `01-requirements.md`, `01-prd.md` 或相关需求文档时。
+-   **阶段**: 规划阶段 (Planning Mode) - 支持 Round 1-5 (Step 2/4)
+
+## 🔄 螺旋迭代指令 (Spiral Instructions)
+
+### Step 2: 深度自查 (Critique)
+在 **任意 Round 的 Step 2**，执行：
+1.  **Full Scan**: 扫描所有页面。
+2.  **Strict Mode**: Round 越靠后，检查标准越严。R1 检查是否有页面，R5 检查是否有点按态。
+
+### Step 4: 运营推演 (Simulation)
+在 **任意 Round 的 Step 4**，执行：
+1.  **Role Play**: 扮演客服/运维/审计。
+2.  **Scenario Injection**: R1 注入基础异常，R5 注入高并发/黑客攻击场景。
 
 ## 🛠️ 生产级需求标准 (Production-Ready Standards)
 

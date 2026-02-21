@@ -23,7 +23,7 @@
 - **行为规范**: .trae/rules/ralph-agent-mode.md
 - **引导规范**: .trae/rules/ralph-entry-rules.md
 - **经验文件**: docs/planning/feature-auth/06-learnings.md
-- **上次更新**: 2023-10-27 14:30
+- **上次更新**: {YYYY-MM-DD HH:mm} (当前系统的当地时间)
 
 ## 🔄 当前迭代状态 (Current Iteration Status)
 - **当前任务**: 未开始 | 进行中 | 完成
@@ -72,10 +72,12 @@
 
 - **经验沉淀**: 发现新坑，**立即**更新 `06-learnings.md`。
 
-- **阶段切换**: 当所有任务都完成后，**必须**执行以下操作：
-  1. 更新 `RALPH_STATE.md` 中的 `当前任务` 为 `完成`。
-  2. 参考 `ralph-testing-mode.md` 进入独立测试阶段。
-  3. 更新 `RALPH_STATE.md` 中的 `当前测试` 为 `进行中`。
+- **阶段切换**: 当所有功能开发任务都完成后：
+  1.  **禁止直接交付**: 严禁直接进行部署、发布或编写交付文档。
+  2.  **强制测试**: 必须立即参考 `ralph-testing-mode.md` 进入独立测试阶段。
+  3.  **状态更新**:
+      - 更新 `RALPH_STATE.md` 中的 `当前任务` 为 `完成`。
+      - 更新 `RALPH_STATE.md` 中的 `当前测试` 为 `进行中`。
 
 ## 3. 提交规范 (Git Integration)
 - 提交时应包含迭代前缀。

@@ -27,20 +27,39 @@ AI 指令:
 
 ## 3. 交互式验收 (Interactive Verification via MCP)
 > **AI 指令**: 
-> 1.  若为 Web 项目，**必须**激活 `web-test-plan` Skill。
+> 1.  **必须**激活 `web-test-plan` Skill。
 > 2.  **必须**遍历项目中的**每一个**前端路由/页面，生成独立的测试区块。
 > 3.  **必须**使用 Chrome DevTools MCP 进行验证。
+> 4.  **格式强制**: 必须使用 Skill 定义的 `Page Test Matrix` 格式。
 
-### 3.1 页面级测试矩阵 (Page-Level Matrix)
+### 3.1 页面测试矩阵 (Page Test Matrix)
 
-#### 示例页面: `/login` (请替换为实际页面)
-- [ ] **1.1 Chrome DevTools MCP 基础检查 (Mandatory)**
-    - **Console Zero Error**: 页面加载及交互过程中，控制台不得有任何红色报错。
-    - **DOM Integrity**: 核心业务元素（如表单、按钮、列表）必须在 DOM 中正确渲染。
-- [ ] **1.2 交互功能验证 (Functional)**
-    - [ ] **Happy Path**: [具体动作] -> [预期 DOM 变化]
-    - [ ] **Sad Path**: [具体动作] -> [预期 DOM 变化]
-    - [ ] **State Check**: [验证 Loading/Empty 状态]
+#### [Page Name] (e.g. /login)
+> Source: `01-requirements.md` & `03-tech-design.md`
+
+**1. 设计分析 (Design Analysis)**
+- **核心功能**: ...
+- **预期交互**: ...
+- **UI 状态**: `loading`, `error`, `empty`
+
+**2. 静态检查 (Static Checks)**
+| 检查项 | 预期结果 | MCP 验证方法 | 状态 |
+| :--- | :--- | :--- | :--- |
+| **Console Errors** | 无红色报错 | `console.logs` | [ ] |
+| **Network Status** | 关键请求 200 | `network.requests` | [ ] |
+| **Layout Shift** | 无布局抖动 | Visual Check | [ ] |
+
+**3. 功能交互穷举 (Functional Exhaustion)**
+- [ ] **Happy Path**: ...
+- [ ] **Sad Path**: ...
+- [ ] **Validation**: ...
+
+**4. 视觉检查 (Visual Check)**
+- [ ] **Responsive**: 375px / Desktop
+- [ ] **Theme**: Dark Mode
+
+---
+(Repeat for all pages...)
 
 ### 3.2 全局流程串联 (End-to-End Flows)
 - [ ] **<业务闭环名称>**: [步骤 1] -> [步骤 2] -> [步骤 3] -> [最终结果]

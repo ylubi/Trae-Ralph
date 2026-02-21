@@ -10,8 +10,25 @@ description: Ralph 流程专用：在 Web 项目规划阶段，强制生成生�
 ## 🎯 触发条件 (Trigger)
 -   **环境**: Ralph Flow
 -   **项目类型**: Web 项目
--   **阶段**: 规划阶段 (Planning Mode)
--   **文件**: 处理 `02-architecture.md` 或相关架构文档时。
+-   **阶段**: 规划阶段 (Planning Mode) - 支持 Round 1-5 (Step 3/5)
+
+## 🔄 螺旋迭代指令 (Spiral Instructions)
+
+### Step 3: 竞品调研 (Research)
+在 **任意 Round 的 Step 3**，执行 `WebSearch`：
+1.  **Round 1**: 搜索 "架构全景图" (Overall Architecture)。
+2.  **Round 2**: 搜索 "核心模块设计" (Core Module Design)。
+3.  **Round 3**: 搜索 "数据模型最佳实践" (DB Schema Best Practices)。
+4.  **Round 4**: 搜索 "性能优化策略" (Performance Tuning)。
+5.  **Round 5**: 搜索 "安全合规要求" (Security Compliance)。
+
+### Step 5: 一致性锁定 (Lock)
+在 **任意 Round 的 Step 5**，执行 `Ripple Check`：
+1.  **Sync**: 确保 `01` 的变更已同步到 `02`。
+2.  **Verify**: 确保 API 定义能覆盖所有前端交互。
+3.  **Next Round Trigger**:
+    *   **Round 1-4**: 输出 "🔒 Round X Locked. Proceeding to Round X+1..."
+    *   **Round 5**: 输出 "✅ Final Architecture Locked."
 
 ## 🛠️ 生产级架构标准 (Production-Ready Standards)
 

@@ -90,32 +90,39 @@ function injectSingleSkill(name, targetRoot) {
     }
 
     // 3. 复制所有文件
-    const files = fs.readdirSync(sourceDir).sort();
+    const items = fs.readdirSync(sourceDir).sort();
     let copiedCount = 0;
     
     // 识别 manifest 文件
-    let manifestFile = files.find(f => f === 'SKILL.md');
+    let manifestFile = items.find(f => f === 'SKILL.md');
     if (!manifestFile) {
-        manifestFile = files.find(f => f.includes('manifest') || f.startsWith('00'));
+        manifestFile = items.find(f => f.includes('manifest') || f.startsWith('00'));
     }
 
-    for (const file of files) {
-        const sourcePath = path.join(sourceDir, file);
+    for (const item of items) {
+        const sourcePath = path.join(sourceDir, item);
+        const stats = fs.statSync(sourcePath);
         
-        // 跳过非文件 (如子目录，暂不处理递归)
-        if (!fs.statSync(sourcePath).isFile()) continue;
+        // 处理子目录 (递归复制)
+        if (stats.isDirectory()) {
+            const destPath = path.join(targetDir, item);
+            copyRecursive(sourcePath, destPath);
+            console.log(`   📂 递归复制目录: ${item}`);
+            continue;
+        }
 
-        let destFileName = file;
-        let isManifest = (file === manifestFile);
+        // 处理文件
+        let destFileName = item;
+        let isManifest = (item === manifestFile);
 
         // 如果是 manifest 文件，目标文件名强制为 SKILL.md
-        if (isManifest && file !== 'SKILL.md') {
+        if (isManifest && item !== 'SKILL.md') {
             destFileName = 'SKILL.md';
         }
 
         const destPath = path.join(targetDir, destFileName);
 
-        if (isManifest && path.extname(file) === '.md') {
+        if (isManifest && path.extname(item) === '.md') {
             // 对入口文件进行特殊处理：检查 Frontmatter
             let content = fs.readFileSync(sourcePath, 'utf8');
             if (!content.trim().startsWith('---')) {
@@ -124,14 +131,28 @@ function injectSingleSkill(name, targetRoot) {
                 console.log(`   ✨ 为入口文件补充 YAML Frontmatter`);
             }
             fs.writeFileSync(destPath, content, 'utf8');
-            console.log(`   📝 生成入口文件: SKILL.md (源名: ${file})`);
+            console.log(`   📝 生成入口文件: SKILL.md (源名: ${item})`);
         } else {
             // 其他文件直接复制
             fs.copyFileSync(sourcePath, destPath);
-            console.log(`   📂 复制文件: ${file}`);
+            console.log(`   📂 复制文件: ${item}`);
         }
         copiedCount++;
     }
 
     console.log(`   ✅ 成功注入到: ${targetDir} (共处理 ${copiedCount} 个文件)`);
+}
+
+/**
+ * 递归复制目录
+ */
+function copyRecursive(src, dest) {
+    if (fs.statSync(src).isDirectory()) {
+        if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
+        fs.readdirSync(src).forEach(child => {
+            copyRecursive(path.join(src, child), path.join(dest, child));
+        });
+    } else {
+        fs.copyFileSync(src, dest);
+    }
 }

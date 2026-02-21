@@ -2,32 +2,17 @@
 
 当检测到用户有**新的需求**（无论是从零开始的新项目，还是现有项目的版本迭代/新功能开发）时，Agent 必须自动进入**Ralph 首席架构师**模式。
 
-## 核心原则：迭代式规划 (Iterative Planning)
-软件开发是持续迭代的过程。每次需求变更或新功能开发，都应视为一次独立的“规划事件”，并拥有独立的 workspace。
+## 🚀 核心指令 (Core Directive)
 
-### 1. 目录结构规范
-为了支持多次需求和多次任务计划，所有规划文档必须存放在 `docs/planning/` 的**子目录**中。
-**严禁**直接在 `docs/planning/` 根目录下创建具体的 Markdown 文件。
+本模式完全由 Skill **`ralph-planner`** 驱动。
 
-**推荐结构**:
-```text
-docs/
-└── planning/
-    ├── v1.0-initial-launch/       <-- [迭代 1] 初始版本
-    │   ├── 01-requirements.md
-    │   ├── 02-architecture.md
-    │   ├── 04-ralph-tasks.md
-    │   ├── 05-test-plan.md
-    │   └── 06-learnings.md
-    ├── v1.1-payment-feature/      <-- [迭代 2] 支付功能
-    │   ├── 01-requirements.md
-    │   ├── 05-test-plan.md
-    │   └── 06-learnings.md (Inherited)
-    └── feature-dark-mode/         <-- [迭代 3] 暗色模式
-        └── ...
-```
+1.  **启动/继续**: 任何时候，直接调用 Skill `ralph-planner`。
+2.  **执行**: 严格遵循 Skill 返回的指令和任务定义。
+3.  **循环**: 完成当前 Step 后，再次调用 Skill `ralph-planner`，直到 Skill 宣布结束。
 
-### 2. 深度规划要求 (Deep Dive Planning)
+> **注意**: 所有的 **5-Round 迭代逻辑**、状态管理、防幻觉检查均已封装在 Skill 中。Agent 无需记忆复杂的流程，只需机械地执行 Skill 的指令。
+
+## 2. 深度规划要求 (Deep Dive Planning)
 
 为了确保需求可落地，Ralph 必须执行 **“原子级拆解”**。禁止生成模糊的描述（如“实现登录功能”），必须拆解到代码实现所需的最小粒度。
 
@@ -45,7 +30,7 @@ docs/
 2.  **Check**: "我列出的所有 API，是否都定义了 Request/Response 结构？"
 3.  **Action**: 如果发现模糊描述，必须立即补充细节，直到满足原子级标准。
 
-### 3. 自动触发流程 (Auto-Trigger Workflow)
+## 3. 自动触发流程 (Auto-Trigger Workflow)
 
 当你发现用户想要“做个新东西”或“修改现有功能”时：
 
@@ -62,19 +47,29 @@ docs/
     - 将其复制到 `docs/planning/<迭代名称>/` 下。
     - **注意**: 对于小型迭代，可以只创建必要的文档（如仅 `01-requirements.md` 和 `04-ralph-tasks.md`），不必全部复制。
 
-4.  **生成方案 (Generate Proposal)**:
-    - 结合用户需求，填充该子目录下的文档。
-    - **强制**: 必须填满模板中的“UI 元素清单”和“API 接口定义”表格。
-    - **关键**: 在 `04-ralph-tasks.md` 中拆解针对该次迭代的具体任务。
-    - **质量**: 制定 `05-test-plan.md`，定义“做完”的标准。
-    - **传承**: 初始化或继承 `06-learnings.md`。
+4.  **初始化与执行**:
+    - **必须**调用 Skill `ralph-planner`。
+    - Skill 会自动检测并初始化 `RALPH_STATE.md`，随后指引你完成规划迭代。
 
-### 4. 文档标准与参考
+## 4. 文档标准与参考
 - **模板位置**: `.trae/ralph-assets/templates/` (只读标准)
 - **工作位置**: `docs/planning/<迭代名称>/` (读写实例)
 
-在编写文档时，必须参考标准模板的结构。
+在编写文档时，必须参考标准模板的结构。具体的文档清单由当前激活的 **Routine Skill** (如 `ralph-web-routine`) 定义。
 
-### 5. 激活任务
-规划完成后，必须将本次迭代标记为“当前活跃任务”。
-请参考 `ralph-task-management.md` 更新根目录的指针文件。
+**推荐结构 (Web 项目示例)**:
+```text
+docs/
+└── planning/
+    ├── v1.0-initial-launch/       <-- [迭代 1] 初始版本
+    │   ├── 01-requirements.md     <-- 需求规格 (PRD)
+    │   ├── 02-architecture.md     <-- 架构设计
+    │   ├── 04-ralph-tasks.md      <-- 任务拆解
+    │   ├── 05-test-plan.md        <-- 测试计划
+    │   └── 06-learnings.md        <-- 经验总结
+    ├── v1.1-payment-feature/      <-- [迭代 2] 支付功能
+    │   ├── 01-requirements.md
+    │   ├── 05-test-plan.md
+    │   └── ...
+    └── ...
+```

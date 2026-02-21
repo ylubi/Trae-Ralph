@@ -120,7 +120,7 @@ const ralphStateTemplate = `# Ralph 状态指针
 - **行为规范**: .trae/rules/ralph-agent-mode.md
 - **引导规范**: .trae/rules/ralph-entry-rules.md
 - **经验文件**: [None]
-- **上次更新**: ${new Date().toISOString()}
+- **上次更新**: ${new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().replace('T', ' ').replace('Z', '')}
 
 ## 🔄 当前迭代状态 (Current Iteration Status)
 - **当前任务**: 未开始
