@@ -17,12 +17,17 @@
 当 `04-ralph-tasks.md` 中的所有功能开发任务标记为 `[x]` 后，Agent **必须**显式进入测试阶段。
 
 ### 2.1 启动测试模式
-1.  **状态切换**: 将 Ralph 状态报告中的 `<current-task>` 更新为 `执行全量回归测试`。
+1.  **状态切换**: 
+    - 确保 `RALPH_STATE.md` 中的 `Development` 状态已标记为 `✅ 完成`。
+    - 确保 `RALPH_STATE.md` 中的 `Testing` 状态已标记为 `🔄 进行中`。
 2.  **加载计划**: 读取 `docs/planning/<迭代>/05-test-plan.md`。
 
 ### 2.2 执行测试 (Execution Standards)
 -   **全量回归**: 运行所有层级的自动化测试（Unit + Integration + E2E）。
--   **实时记录 (Real-time Recording)**: 每通过一个测试套件（Test Suite）或验证项，**必须立即**更新 `05-test-plan.md`，将对应的 `[ ]` 改为 `[x]`。禁止等到全部跑完再批量打钩。
+-   **实时记录 (Real-time Recording)**: 每通过一个测试套件（Test Suite）或验证项，**必须立即**执行以下两步操作：
+    > **铁律**: 严禁跑完所有测试再一次性打钩。必须“跑一个 -> 改一个”。
+    1.  **更新计划**: 更新 `05-test-plan.md`，将对应的 `[ ]` 改为 `[x]`。
+    2.  **更新状态**: 更新 `RALPH_STATE.md` 中的 `Testing` 进度 (例如从 `0/20 Cases` 更新为 `5/20 Cases`)。
 -   **非交互原则**: 
     -   严禁使用 `npm start` 或 `npm test` (watch mode)。
     -   **必须**使用 CI 模式参数，例如：
@@ -38,7 +43,7 @@
 1.  **自动化门禁**: 所有 CI 测试通过 (Green)。
 2.  **计划更新**: `05-test-plan.md` 中的所有检查项均已标记为 `[x]`。
 3.  **人工验收**: 如果有需要人工介入的测试（如 UI 视觉检查），已截图并保存证据。
-4.  **状态更新**: 更新 `RALPH_STATE.md` 中的 `当前测试` 为 `完成`。
+4.  **状态终结**: 更新 `RALPH_STATE.md` 中的 `Testing` 状态为 `✅ 完成`。
 
 ## 3. 测试文件与工具规范
 

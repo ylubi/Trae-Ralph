@@ -17,7 +17,7 @@ description: Ralph 流程专用：仅当在 Web 项目开发且处于规划阶�
 ## 核心目标 (Core Objectives)
 1.  **全页面覆盖 (All Pages)**: 必须枚举项目路由中的每一个页面。
 2.  **全功能覆盖 (All Features)**: 针对每个页面，必须枚举所有交互功能（点击、输入、提交、跳转、状态变更）。
-3.  **MCP 深度验证 (Deep Verification)**: 必须强制使用 **Chrome DevTools MCP** 对每个页面进行“视觉与控制台”的双重检查。
+3.  **Chrome DevTools 深度验证 (Deep Verification)**: 必须强制使用 Chrome DevTools 对每个页面进行“视觉、网络、性能”的多维检查。
 
 ## 执行策略：设计驱动穷举 (Design-Driven Exhaustion)
 由于规划阶段可能尚未编写代码，测试计划必须基于 **设计文档** 进行穷举：
@@ -33,15 +33,27 @@ description: Ralph 流程专用：仅当在 Web 项目开发且处于规划阶�
     *   **强制补充** 标准 Web 交互状态：
         *   **Happy Path**: 正常操作流程。
         *   **Sad Path**: 网络错误、校验失败、权限不足。
-        *   **Loading State**: 数据加载中的骨架屏/Spinner。
+        *   **Loading State (Slow 3G)**: 弱网环境下的骨架屏/Spinner 展示。
+        *   **Offline State**: 断网时的提示或缓存展示。
         *   **Empty State**: 无数据时的展示。
 
-3.  **视觉标准 (Visual Standards)**:
-    *   基于 `02-architecture.md` 中的 UI/UX 规范（如有）。
-    *   若无明确设计稿，则强制采用通用响应式标准 (Mobile/Desktop 适配)。
+3.  **DevTools 验证标准 (DevTools Standards)**:
+    *   **Console**: 零红色报错 (Zero Red Errors)。
+    *   **Network**: 模拟 Slow 3G 验证加载体验；模拟 Offline 验证容错。
+    *   **Application**: 验证 Token/Cookies 存储逻辑。
+    *   **Lighthouse**: 确保核心页面 Performance > 80, Accessibility > 90。
+    *   **Device Mode**: 验证 375px (Mobile) 及 IPad (Tablet) 适配。
 
 ## 内容填充规则 (Content Population Rules)
 由于 `05-test-plan.md` 的核心是 **第3章：交互式验收 (Interactive Verification)**，你必须遵循以下 **强制格式**：
+
+### 1. 测试范围概览 (Test Scope Inventory)
+**必须**在文档开头创建一个表格，列出所有待测试的页面和关键功能，作为测试总览。
+| 页面 (Route) | 关键功能 (Key Features) | 优先级 |
+| :--- | :--- | :--- |
+| `/login` | 登录表单, 忘记密码, 社交登录 | P0 |
+| `/dashboard` | 数据概览, 图表渲染, 快捷入口 | P0 |
+| ... | ... | ... |
 
 ### 3. 交互式验收 (Interactive Verification)
 **必须** 对项目中的 **每一个页面** (Page/Route) 重复生成以下标准矩阵结构：
@@ -54,17 +66,25 @@ description: Ralph 流程专用：仅当在 Web 项目开发且处于规划阶�
 - **预期交互**: [从验收标准提取]
 - **UI 状态**: `loading`, `error`, `empty`
 
-**3.x.2 静态检查 (Static Checks)**
-| 检查项 | 预期结果 | MCP 验证方法 | 状态 |
-| :--- | :--- | :--- | :--- |
-| **Console Errors** | 无红色报错 | `console.logs` | [ ] |
-| **Network Status** | 关键请求 200 | `network.requests` | [ ] |
-| **Layout Shift** | 无布局抖动 | Visual Check | [ ] |
+**3.x.2 Chrome DevTools 深度验证 (Deep Verification)**
+> **强制工具**: Chrome DevTools (F12)
+
+| 检查面板 (Panel) | 检查项 (Check Item) | 验证标准 (Criteria) | 模拟/操作 (Action) | 状态 |
+| :--- | :--- | :--- | :--- | :--- |
+| **Console** | **Runtime Errors** | 无红色报错 (0 Errors) | 全流程操作监控 | [ ] |
+| **Network** | **API Status** | 核心请求 200/201 | 检查 XHR/Fetch | [ ] |
+| **Network** | **Slow 3G** | Loading 骨架屏/Spinner 正常显示 | Preset: Slow 3G | [ ] |
+| **Network** | **Offline** | 断网提示/优雅降级 | Preset: Offline | [ ] |
+| **Application**| **Storage/Cookies**| Token/Session 存储正确 | 检查 LocalStorage/Cookies | [ ] |
+| **Lighthouse** | **Core Vitals** | Performance > 80, Accessibility > 90 | Run Navigation Audit | [ ] |
+| **Elements** | **Layout Shift** | 无明显 CLS (布局偏移) | 视觉检查 / Perf Monitor | [ ] |
+| **Device Mode**| **Responsive** | 375px/IPad 布局无错乱 | Toggle Device Toolbar | [ ] |
 
 **3.x.3 功能交互穷举 (Functional Exhaustion)**
-- [ ] **Happy Path**: [具体操作] -> [预期结果]
-- [ ] **Sad Path**: [异常操作] -> [错误提示]
-- [ ] **Validation**: [无效输入] -> [校验提示]
+> **禁止笼统**: 严禁写 "测试所有功能"。必须拆解为具体的“动作 -> 反馈”。
+- [ ] **Happy Path**: [具体操作，如：点击提交] -> [预期结果，如：跳转至首页]
+- [ ] **Sad Path**: [异常操作，如：断网提交] -> [错误提示，如：Toast显示重试]
+- [ ] **Validation**: [无效输入，如：密码少于6位] -> [校验提示，如：Input变红]
 
 **3.x.4 视觉检查 (Visual Check)**
 - [ ] **Responsive**: 移动端适配 (375px)
@@ -88,9 +108,10 @@ description: Ralph 流程专用：仅当在 Web 项目开发且处于规划阶�
 ## 🤖 质量自检清单 (Quality Self-Check)
 
 在生成最终文件前，Agent 必须自问：
-1.  **填满了吗？** 我是否将模板中的“示例页面”替换为了项目的所有实际页面？
-2.  **具体吗？** 我是否将抽象的 `[具体动作]` 替换为了真实的业务操作描述？
-3.  **MCP保留了吗？** 我是否保留了第 4/5 章中关于 Chrome DevTools MCP 的技术指令？
-4.  **API全了吗？** 我是否列出了核心业务 API 并包含状态码预期？
+1.  **有概览吗？** 我是否在文档开头创建了包含所有页面的“测试范围概览”表格？
+2.  **填满了吗？** 我是否将模板中的“示例页面”替换为了项目的所有实际页面？
+3.  **具体吗？** 我是否将抽象的 `[具体动作]` 替换为了真实的业务操作描述？
+4.  **DevTools覆盖了吗？** 我是否包含了 Network (Slow 3G/Offline), Lighthouse, Application 等深度验证项？
+5.  **API全了吗？** 我是否列出了核心业务 API 并包含状态码预期？
 
 如果任一答案为“否”，请重新生成。
