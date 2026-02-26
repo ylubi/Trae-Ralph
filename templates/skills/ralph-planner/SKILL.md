@@ -1,151 +1,105 @@
 ---
 name: ralph-planner
-description: Ralph 规划模式的核心状态机。负责初始化并管理 5 轮规划迭代 (5-Round Planning) 的全生命周期，并根据 Routine Skill 定义的步骤进行调度。
+description: Ralph 核心状态机。负责管理全生命周期：3 轮规划 (Planning) -> 开发 (Implementation) -> 测试 (Testing)。
 ---
 
 # Skill: ralph-planner
 
-## 技能描述
-这是 Ralph **规划模式**的最高指挥官与状态管理员。
-你的职责是管理 `RALPH_STATE.md` 文件的生命周期，并根据状态机逻辑调度具体的执行 Skill（如 `ralph-web-routine`）。
+## 📋 技能描述 (Description)
+这是 Ralph 的 **最高指挥官与全生命周期状态管理员**。
+你的职责是管理 `RALPH_STATE.md`，并调度 Planning (3 Rounds), Implementation, Testing 三大阶段的流转。
 
-## 核心机制
-本 Skill 强制执行 **5 轮规划迭代 (5-Round Planning)**。
-每一轮的具体步骤由 `ralph-web-routine` 定义，但**流程的节奏**由你严格控制。
+## 使用场景 (Usage)
+- 用户启动项目时。
+- 每一轮迭代 (Round/Phase) 结束时。
+- 需要检查 "下一步做什么" 时。
+- 用户指令: "查看 Ralph 开发进程", "继续 Ralph 开发", "继续".
 
-## 执行流程
-作为状态管理员，你必须严格按照以下三个阶段顺序执行，**严禁跳过任何步骤**。
+## 指令 (Instructions)
 
-### 第一阶段：状态检查与初始化
-1.  **读取状态文件**：
-    *   首先调用 `Read` 工具读取项目根目录下的 `RALPH_STATE.md`。
+### Phase 0: 初始加载协议 (Bootstrap Protocol)
+**在开始任何工作之前，必须优先执行以下协议：**
+1.  **资源定位 (Resource Location)**:
+    -   **重要**: 本 Skill 的标准规划模板位于 `./assets/` 目录中。
+    -   在创建任何文档之前，**必须**优先读取该目录下的对应模板文件 (例如 `./assets/RALPH_STATE_TEMPLATE.md`)。
+2.  **上下文对齐 (Context Alignment)**: 
+    -   加载规则后的第一步，**立即**读取 `RALPH_STATE.md`。
+    -   如果内部状态与 `RALPH_STATE.md` 不一致，**必须**废弃内部状态，并根据 `RALPH_STATE.md` 重建。
+
+### Phase 1: 状态检查与初始化
+1.  **读取状态文件**：调用 `Read` 读取 `RALPH_STATE.md`。
 2.  **状态判断**：
     *   **如果文件不存在**：
-        1.  立即执行下方的 **[初始化协议]** 创建文件。
-        2.  **强制调用** `ralph-round-initializer` 技能，启动第一轮配速检查。
-        3.  将状态指针初始化为 **Round 1 / Step 1**。
+        1.  执行 **[初始化协议]** 创建文件。
+        2.  初始化为 **Planning / Round 1 / Step 1**。
     *   **如果文件存在**：
-        1.  解析文件内容，找到当前标记为 `🔄 进行中` 的行。
-        2.  **异常处理**：如果找不到 `🔄 进行中` 的行，且最后一行不是 `✅ 完成`，视为状态异常，必须强制重置为 **Round 1 / Step 1**。
-        3.  **结束判断**：如果 **Round 5** 的最后一步已经是 `✅ 完成`，输出 "🎉 All 5 Rounds Completed" 并结束流程。
-        4.  **正常流转**：如果上述情况皆非，进入 **[第二阶段：状态流转控制]**。
+        1.  检查 **Current Iteration Status** 表格。
+        2.  找到当前标记为 `🔄 进行中` 的行。
+        3.  如果所有 Planning Rounds 都完成，检查 **Task Statistics**。
+        4.  如果 Tasks 全部完成，检查 **Test Statistics** (需确保存在)。
 
-### 第二阶段：状态流转控制
-**注意**：只有当当前步骤的实际任务（文档编写、调研等）**已经真实完成**时，才允许执行此阶段。
+### Phase 2: 状态流转控制 (State Flow Control)
 
-#### 1. 强制钩子 (Hook Enforcement)
-在激活任何新的一轮（即从 Round X 切换到 Round X+1）之前，你必须执行以下操作：
-*   **动作**：调用 Skill `ralph-round-initializer`。
-*   **时机**：当你准备将下一轮的 `Step 1` 从 `⏳ 待定` 激活为 `🔄 进行中` 之前。
-*   **规则**：
-    1.  **静默执行**：在调用该 Skill 之前，**严禁**输出 "进入下一轮" 等提示语。Skill 调用必须是你的第一个动作。
-    2.  **等待放行**：只有当 `ralph-round-initializer` 返回明确的 "🚀 Round X Ready" 信号后，你才被允许修改状态文件。
+#### 1. 规划阶段 (Planning Phase)
+*   **流转逻辑**: Round 1 -> Round 2 -> Round 3 (每轮 5 Steps)。
+*   **Hook**: 每轮开始前调用 `ralph-round-initializer`。
+*   **End of Planning**: 当 Round 3 / Step 5 (Lock) 完成时：
+    *   **Action**: 在 `RALPH_STATE.md` 中追加/更新 "Implementation Phase" 区域，**必须**包含 "Execution Iron Rule" 警告（参考模板）。
+    *   **Trigger**: 输出 "🎉 Planning Completed. Initiating Implementation Phase..." 并调用 `ralph-task-executor`。
 
-#### 2. 合法流转规则 (Strict State Machine)
-你必须遵守以下铁律，任何违规都将被视为严重错误：
-1.  **单步流转**：仅允许将**当前**处于 `🔄 进行中` 的行修改为 `✅ 完成`。
-2.  **禁止跳变**：**绝对禁止**将 `⏳ 待定` 的行直接修改为 `✅ 完成`。必须遵循 `⏳ 待定` -> `🔄 进行中` -> `✅ 完成` 的严格顺序。
-3.  **单次单行**：每次 `Write` 操作只能修改 **1 行** 为 `✅ 完成`。严禁一次性勾选多个步骤。
+#### 2. 开发阶段 (Implementation Phase)
+*   **监控**: 检查 `04-ralph-tasks.md` 的完成度。
+*   **流转**:
+    *   **In Progress**: 如果任务未全完成，保持在 Implementation Phase。
+    *   **Done**: 当所有任务标记为 `[x]` 时：
+        *   **Action**: 在 `RALPH_STATE.md` 中追加/更新 "Testing Phase" 区域，**必须**包含 "Execution Iron Rule" 警告（参考模板）。
+        *   **Trigger**: 输出 "🎉 Implementation Completed. Initiating Testing Phase..." 并调用 `ralph-test-executor`。
 
-#### 3. 状态更新逻辑
-请根据当前进度执行以下逻辑之一：
+#### 3. 测试阶段 (Testing Phase)
+*   **监控**: 检查 `05-test-plan.md` 的完成度。
+*   **流转**:
+    *   **Pending/In Progress**:
+        *   如果 `RALPH_STATE.md` 中尚未显示 "Testing Phase" 或状态为 "待开始"，且任务已全完成：
+        *   **Action**: 立即将当前上下文切换为 "测试阶段 (Testing Phase)"。
+        *   **Trigger**: 自动调用 `ralph-test-executor` 开始测试。
+    *   **Done**: 当所有测试标记为 `[x]` 时：
+        *   **Action**: 标记项目为 "Project Delivered"。
+        *   **Trigger**: 输出 "🎉🎉🎉 PROJECT COMPLETED SUCCESSFULLY! 🎉🎉🎉"。
 
-*   **场景一：当前轮次尚未结束**
-    *   操作：将当前行标记为 `✅ 完成`，并将同一轮次的**下一行**标记为 `🔄 进行中`。
-    *   保存：写入更新后的 `RALPH_STATE.md`。
-    *   通告：输出 "✅ Step Completed. NOW ENTERING: Round X / Step Y"。
+### 初始化协议 (Initialization Protocol)
+如果需要初始化 `RALPH_STATE.md`：
+1.  **加载模板**：读取 `./assets/RALPH_STATE_TEMPLATE.md`。
+2.  **生成文件**：基于模板内容生成 `RALPH_STATE.md`，替换 `[Iteration]` 为实际迭代名称。
+3.  **状态设定**：确保仅 Round 1 / Step 1 (Draft) 标记为 `🔄 进行中`，其余均为 `⏳ 待定`。
 
-*   **场景二：当前轮次刚刚结束（且未到第 5 轮）**
-    *   操作：将当前行（本轮最后一步）标记为 `✅ 完成`。
-    *   **关键暂停**：**不要**立即激活下一轮的 Step 1。
-    *   触发：输出 "🎉 Round X Completed. Initiating Round X+1..." 并**立即调用** `ralph-round-initializer`。
-    *   **回调等待**：在本次交互中**不进行后续写入**。只有在下一次交互中，收到 `ralph-round-initializer` 的成功反馈后，才将下一轮的 Step 1 激活为 `🔄 进行中`。
+## 示例 (Examples)
 
-*   **场景三：第 5 轮刚刚结束**
-    *   操作：将 Round 5 的最后一步标记为 `✅ 完成`。
-    *   **新增**：将下方 "🚀 执行与交付" 表格中的 "Development" 状态激活为 `🔄 进行中`。
-    *   通告：标记整个规划阶段结束，进入开发阶段。
+### 示例 1：启动规划
+**Input**:
+> 用户：Start Planning
 
-### 第三阶段：任务执行调度
-1.  **识别步骤**：确认当前处于 `🔄 进行中` 的步骤是 **Round X / Step Y**。
-2.  **路由分发**：
-    *   默认调用 Skill `ralph-web-routine`。
-    *   **重要参数**：在调用时，必须明确告知 Agent 当前处于 **Round X / Step Y**，以便 Routine Skill 加载正确的指令。
+**Output**:
+> 🚀 **Ralph Planner Initialized**
+> - **State**: Planning Phase / Round 1 / Step 1
+> - **Action**: Invoking `ralph-web-routine` to start drafting baseline documents.
 
-## 初始化协议
-如果需要初始化 `RALPH_STATE.md`，请严格执行：
-1.  **读取定义**：调用 `Read` 工具读取 `ralph-web-routine` Skill 的定义文件，提取 **[工作流定义]** 章节中的步骤名称。
-2.  **生成文件**：使用下方的**强制模板**创建文件。
-    *   必须将 `<Routine定义>` 替换为真实的步骤名称（如 Draft, Critique 等）。
-    *   必须完整生成 Round 1 到 Round 5 的所有表格。
-    *   初始状态下，只有 **Round 1 / Step 1** 是 `🔄 进行中`，其余全部是 `⏳ 待定`。
+### 示例 2：检查状态
+**Input**:
+> 用户：What's next?
 
-**强制模板 (请直接复制并填入实际值)**：
-```markdown
-# Ralph 状态指针 (规划模式)
+**Output**:
+> 📊 **Current Status**:
+> - **Phase**: Implementation
+> - **Tasks**: 45/112 Completed
+> - **Next Action**: Continue with Task #46 (See `04-ralph-tasks.md`)
 
-## 📍 当前活跃上下文 (Active Context)
-- **迭代名称**: <用户指定的迭代名，如 "MVP-1.0">
-- **规划路径**: docs/planning/<迭代名>/
-- **当前 Routine**: ralph-web-routine
-- **上次更新**: <YYYY-MM-DD HH:mm:ss>
-- **任务规范**: .trae/rules/ralph-task-management.md
-- **测试规范**: .trae/rules/ralph-testing-mode.md
-- **行为规范**: .trae/rules/ralph-agent-mode.md
-- **引导规范**: .trae/rules/ralph-entry-rules.md
+## 🛡️ 铁律与约束 (Iron Rules & Constraints)
+1.  **单步流转**：仅允许将 **当前** `🔄 进行中` 的行改为 `✅ 完成`。
+2.  **禁止跳变**：**绝对禁止** `⏳ 待定` -> `✅ 完成`。
+3.  **阶段闭环**：Planning 未完成严禁进入 Implementation；Implementation 未完成严禁进入 Testing。
 
-## Round 1: 初始规划 (基线版本)
-| 步骤 | 阶段 | 状态 | 时间戳 (Local) |
-| :--- | :--- | :--- | :--- |
-| Step 1 | <Routine定义> | 🔄 进行中 | <YYYY-MM-DD HH:mm:ss> |
-| Step 2 | <Routine定义> | ⏳ 待定 | - |
-| Step 3 | <Routine定义> | ⏳ 待定 | - |
-| Step 4 | <Routine定义> | ⏳ 待定 | - |
-| Step 5 | <Routine定义> | ⏳ 待定 | - |
-
-## Round 2: 迭代轮次 2 (增量更新)
-| 步骤 | 阶段 | 状态 | 时间戳 (Local) |
-| :--- | :--- | :--- | :--- |
-| Step 1 | <Routine定义> | ⏳ 待定 | - |
-| ...  | ... | ... | ... |
-
-## Round 3: 迭代轮次 3 (增量更新)
-| 步骤 | 阶段 | 状态 | 时间戳 (Local) |
-| :--- | :--- | :--- | :--- |
-| Step 1 | <Routine定义> | ⏳ 待定 | - |
-| ...  | ... | ... | ... |
-
-## Round 4: 迭代轮次 4 (边缘场景)
-| 步骤 | 阶段 | 状态 | 时间戳 (Local) |
-| :--- | :--- | :--- | :--- |
-| Step 1 | <Routine定义> | ⏳ 待定 | - |
-| ...  | ... | ... | ... |
-
-## Round 5: 最终锁定 (全量一致)
-| 步骤 | 阶段 | 状态 | 时间戳 (Local) |
-| :--- | :--- | :--- | :--- |
-| Step 1 | <Routine定义> | ⏳ 待定 | - |
-| ...  | ... | ... | ... |
-
-## 🚀 执行与交付 (Execution & Delivery)
-> **数据源铁律**: 此表格仅为摘要。Agent **必须**首先在 `关联文件` (04/05) 中勾选任务，然后**立即**同步更新此处的进度。
-> **禁止**: 严禁只更新此处而不更新关联文件，反之亦然。
-
-| 阶段 | 状态 | 进度 | 关联文件 |
-| :--- | :--- | :--- | :--- |
-| **Development** | ⏳ 待定 | 0/0 Tasks | `04-ralph-tasks.md` |
-| **Testing** | ⏳ 待定 | 0/0 Cases | `05-test-plan.md` |
-```
-
-## 防幻觉铁律
-1.  **物理更新**：必须真实调用 `Write` 修改文件，禁止只在回复中口头说“已更新”。
-2.  **三方一致性 (3-Way Consistency)**:
-    *   `04-ralph-tasks.md` 中的 `[x]` 数量必须与 `RALPH_STATE.md` 中的 `进度 (X/Total)` 完全一致。
-    *   **自我纠错**: 如果发现不一致，你**必须**立即发起一个修复动作来同步它们。
-3.  **真实时间戳**：必须使用当前系统的真实时间（参考 `<env>` 中的 Today's date 和当前时刻），格式必须为 `YYYY-MM-DD HH:mm:ss`。严禁编造时间。
-4.  **禁止臆造**：严禁修改你没有实际执行的任务状态。
-
-## 全局开发锁
-**严重警告**：在规划阶段未**完全结束**（即 Round 5 全部完成）之前：
-1.  **禁止写代码**：严禁创建或修改任何源代码文件（如 `.js`, `.ts`, `.py` 等）。
-2.  **仅限文档**：你只能操作 `docs/planning/` 下的 `.md` 文件和 `RALPH_STATE.md`。
+## 📂 关联资产 (Related Assets)
+- `ralph-web-routine/SKILL.md` (Planning Steps)
+- `ralph-task-executor/SKILL.md` (Implementation)
+- `ralph-test-executor/SKILL.md` (Testing)
+- `./assets/RALPH_STATE_TEMPLATE.md` (State Template)

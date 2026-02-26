@@ -100,6 +100,9 @@ function injectSingleSkill(name, targetRoot) {
     }
 
     for (const item of items) {
+        // 不再跳过 assets 目录，确保 assets 也被复制到 skill 自身目录中
+        // if (item === 'assets') continue;
+
         const sourcePath = path.join(sourceDir, item);
         const stats = fs.statSync(sourcePath);
         
@@ -139,6 +142,33 @@ function injectSingleSkill(name, targetRoot) {
         }
         copiedCount++;
     }
+
+    // 4. 处理 Assets (部署到全局模板目录)
+    // 移除逻辑：不再将 assets 复制到全局 .trae/ralph-assets/templates
+    // 现在的策略是：Skill 自包含，直接使用 Skill 目录下的 assets
+    /*
+    const assetsSourceDir = path.join(sourceDir, 'assets');
+    if (fs.existsSync(assetsSourceDir) && fs.statSync(assetsSourceDir).isDirectory()) {
+        const assetsTargetDir = path.resolve(targetRoot, '.trae/ralph-assets/templates');
+        if (!fs.existsSync(assetsTargetDir)) {
+            fs.mkdirSync(assetsTargetDir, { recursive: true });
+        }
+        
+        const assetFiles = fs.readdirSync(assetsSourceDir);
+        let assetCount = 0;
+        
+        assetFiles.forEach(file => {
+            if (path.extname(file) === '.md') {
+                fs.copyFileSync(path.join(assetsSourceDir, file), path.join(assetsTargetDir, file));
+                console.log(`   📦 部署资产: ${file} -> .trae/ralph-assets/templates`);
+                assetCount++;
+            }
+        });
+        if (assetCount > 0) {
+            console.log(`   ✅ 已同步 ${assetCount} 个资产文件`);
+        }
+    }
+    */
 
     console.log(`   ✅ 成功注入到: ${targetDir} (共处理 ${copiedCount} 个文件)`);
 }

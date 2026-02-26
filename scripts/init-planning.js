@@ -11,7 +11,6 @@ if (!targetProjectDir) {
 }
 
 const absoluteTargetDir = path.resolve(targetProjectDir);
-const sourceTemplatesDir = path.resolve(__dirname, '../templates/planning');
 
 // 定义目标目录
 // 引用层 (Reference): 存放只读标准模板，每次都会更新
@@ -19,33 +18,14 @@ const targetReferenceDir = path.join(absoluteTargetDir, '.trae/ralph-assets/temp
 
 console.log(`🚀 开始初始化需求规划环境: ${absoluteTargetDir}`);
 
-// 确保引用层目录存在
-if (!fs.existsSync(targetReferenceDir)) {
-  fs.mkdirSync(targetReferenceDir, { recursive: true });
-  console.log(`✅ 创建目录: ${path.relative(absoluteTargetDir, targetReferenceDir)}`);
-}
-
 // ---------------------------------------------------------
 // 阶段 1: 安装/更新标准模板库 (Reference Layer)
-// 策略: 强制覆盖 (Force Update)，确保项目始终拥有最新标准
+// 策略: 委托给 inject-rules.js 处理 (模板已随 Skills 分发)
 // ---------------------------------------------------------
-console.log('📦 [1/2] 更新标准模板库 (.trae/ralph-assets)...');
-
-// 自动扫描并复制所有 .md 文件
-const files = fs.readdirSync(sourceTemplatesDir);
-files.forEach(file => {
-  if (path.extname(file) === '.md') {
-    const src = path.join(sourceTemplatesDir, file);
-    const dest = path.join(targetReferenceDir, file);
-
-    fs.copyFileSync(src, dest);
-    // console.log(`  -> 更新: ${file}`);
-  }
-});
-console.log(`✅ 已同步 ${files.length} 个模板文件`);
+console.log('📦 [1/2] 准备注入 Ralph Skills 与模板...');
 
 // ---------------------------------------------------------
-// 阶段 2: 注入 Ralph 规则
+// 阶段 2: 注入 Ralph 规则与模板
 // ---------------------------------------------------------
 const injectScript = path.resolve(__dirname, 'inject-rules.js');
 try {

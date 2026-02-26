@@ -3,62 +3,71 @@ name: ralph-web-requirement
 description: Ralph 流程专用：在 Web 项目规划阶段，强制生成包含管理后台、用户中心及深度字段定义的生产级 PRD。仅当处理 01-requirements.md 或 01-prd.md 时触发。
 ---
 
-# Ralph Web Requirement Expert
+# Skill: ralph-web-requirement
 
+## 📋 技能描述 (Description)
 此 Skill 专用于解决“需求文档过于简陋”的问题，确保生成的 PRD 具备生产级深度。
+它强制要求包含完整的生命周期管理（CRUD + Audit）、字段级定义和业务闭环。
 
-## 🎯 触发条件 (Trigger)
--   **环境**: Ralph Flow
--   **项目类型**: Web 项目
--   **阶段**: 规划阶段 (Planning Mode) - 支持 Round 1-5 (Step 2/4)
+## 使用场景 (Usage)
+- **Phase**: Planning Phase (Round 1-3)
+- **Caller**: `ralph-web-routine`
+- **Context**: 编写/修订 `01-requirements.md` 时。
 
-## 🔄 螺旋迭代指令 (Spiral Instructions)
+## 指令 (Instructions)
 
 ### Step 2: 深度自查 (Critique)
-在 **任意 Round 的 Step 2**，执行：
-1.  **Full Scan**: 扫描所有页面。
-2.  **Strict Mode**: Round 越靠后，检查标准越严。R1 检查是否有页面，R5 检查是否有点按态。
+在 **Step 2**，扮演 "Critical Product Manager"：
+1.  **Logical Gaps**: 寻找流程断点（如：注册了但没发验证码？）。
+2.  **Edge Cases**: 寻找遗漏的边界（如：断网？并发？）。
+3.  **Data Consistency**: 寻找字段定义冲突。
+4.  **Output**: 输出 "🔴 Critical Issues" 列表，强制要求在下一轮 Draft 中修复。
 
 ### Step 4: 运营推演 (Simulation)
-在 **任意 Round 的 Step 4**，执行：
-1.  **Role Play**: 扮演客服/运维/审计。
-2.  **Scenario Injection**: R1 注入基础异常，R5 注入高并发/黑客攻击场景。
+在 **Step 4**，扮演 "Operations Manager"：
+1.  **Scenario**: 模拟真实用户故事（e.g., "用户忘记密码且手机号已换"）。
+2.  **Walkthrough**: 按照文档描述走一遍流程。
+3.  **Pass/Fail**: 如果流程走不通，标记为 "❌ Simulation Failed"。
 
-## 🛠️ 生产级需求标准 (Production-Ready Standards)
+## 示例 (Examples)
 
-### 1. 页面穷举原则 (Page Exhaustion)
-严禁只设计“核心流程”或“列表页”。必须包含完整的生命周期管理：
+### 示例 1：深度自查 (Critique)
+**Input**:
+> 用户：Critique Draft 1
 
--   **管理后台 (Admin Panel)**:
-    -   **必须包含**: 管理员登录/鉴权 (RBAC)。
-    -   **必须包含**: 核心业务资源的全生命周期管理 (CRUD + Review + History)。
-        -   **列表页**: 必须包含高级筛选、搜索、分页、批量操作。
-        -   **新建/编辑页**: 必须包含复杂表单设计（分步表单、动态字段、文件上传）。
-        -   **详情页**: 必须包含元数据、关联数据、操作日志。
-    -   **必须包含**: 审计日志 (Audit Logs) 或操作记录。
-    -   **必须包含**: 仪表盘 (Dashboard) - 关键指标统计（日活、新增、转化率）。
--   **用户中心 (User Center)**:
-    -   **必须包含**: 个人资料 (Profile)、安全设置 (修改密码/绑定邮箱/MFA)。
-    -   **必须包含**: 业务数据的“生产者视图” (My Created Projects) 与“消费者视图” (My Joined Tasks)。
-    -   **必须包含**: 通知中心 (Notifications) - 消息列表、标记已读。
--   **公共页面**: 404 Not Found, 403 Forbidden, 500 Server Error 页面设计。
+**Output**:
+> 🧐 **Critique Report**:
+> 1. **Gap**: User registration mentions "Email Verification" but no API or UI flow is defined for it.
+> 2. **Edge Case**: What happens if the 3rd-party OAuth provider is down?
+> **Action**: Please fix these in Round 2 Draft.
 
-### 2. 字段深度原则 (Field Depth)
-严禁使用“简单的字符串描述”。每个字段必须定义：
--   **类型**: String, Int, Enum, Boolean, Timestamp, JSON, Array, File (Size/Type).
--   **验证**: Required, MaxLength, Regex (Email/Phone), Custom Logic (Async/Cross-field).
--   **交互**: Placeholder, Error Message, Loading State, Debounce, Tooltip.
--   **权限**: 谁可读？谁可写？(Read/Write/Admin Only/Owner Only).
+### 示例 2：运营推演 (Simulation)
+**Input**:
+> 用户：Simulate "User Refund"
 
-### 3. 业务逻辑闭环 (Logic Completeness)
--   **异常流程**: 网络失败、权限不足、数据冲突、并发锁、表单脏检查。
--   **数据关联**: 删除主数据时，关联数据如何处理？(Cascade/Restrict/Set Null).
--   **状态流转**: 明确定义状态机 (State Machine) 及其触发动作（如：Pending -> Approved -> Published）。
+**Output**:
+> 🎭 **Simulating Refund Flow...**
+> 1. User clicks "Refund" -> System checks eligibility (✅ Defined)
+> 2. Admin receives notification (❌ Missing definition in Admin Panel)
+> **Result**: ❌ Simulation Failed. Admin notification flow missing.
 
-## 🤖 质量自检清单 (Quality Self-Check)
+## 🛡️ 铁律与约束 (Iron Rules & Constraints)
+
+### 1. 生产级需求标准 (Production-Ready Standards)
+-   **页面穷举原则**:
+    -   **管理后台**: 必须包含 RBAC, CRUD, Audit Logs, Dashboard。
+    -   **用户中心**: 必须包含 Profile, Security, Notifications。
+    -   **公共页面**: 404, 403, 500。
+-   **字段深度原则**: 严禁简单描述。必须定义 Type, Validation, Interaction, Permission。
+-   **业务逻辑闭环**: 必须定义异常流程, Cascade Delete, State Machine。
+
+### 2. 质量自检清单 (Quality Self-Check)
 在生成或审查需求文档时，Agent 必须自问：
-1.  **能落地吗？** 这个表单如果交给前端开发，他知道每个字段的最大长度和校验规则吗？
-2.  **流程通吗？** 数据创建后谁来审核？审核不通过怎么办？谁能修改？
-3.  **视图全吗？** 我发布的内容和我参与的内容，是否在用户中心有区分？
-4.  **后台强吗？** 管理员能否在后台处理所有可能的业务异常（如人工退款、强制下架、封号）？
-5.  **像真的吗？** 这看起来像是一个 Demo 还是一个可以上线运营的商业产品？
+1.  **能落地吗？** 开发人员知道字段长度和校验规则吗？
+2.  **流程通吗？** 审核流程闭环了吗？
+3.  **视图全吗？** 生产者/消费者视图区分了吗？
+4.  **后台强吗？** 管理员能处理异常吗？
+5.  **像真的吗？** 能上线运营吗？
+
+## 📂 关联资产 (Related Assets)
+- `01-requirements.md` (Target)

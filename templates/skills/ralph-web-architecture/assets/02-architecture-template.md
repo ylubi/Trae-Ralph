@@ -28,7 +28,7 @@ AI 指令:
 - **后端单元测试**: [如 Vitest / Jest]
 - **前端组件测试**: [如 React Testing Library + Vitest]
     - 目标: 覆盖所有页面和交互组件
-- **E2E 测试**: [Playwright (推荐) / Cypress]
+- **E2E 测试**: [Chrome DevTools MCP (推荐) / Playwright]
 - **MCP 工具**: [Chrome DevTools MCP / SQLite MCP]
 
 ## 2. 目录结构规范

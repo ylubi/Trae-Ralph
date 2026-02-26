@@ -174,7 +174,7 @@ function checkHardcodedPaths(templateDir, report) {
 
 function checkLayerConsistency(templateDir, report) {
   const markdownFiles = collectMarkdownFiles(templateDir);
-  const stackKeywords = ['node', 'npm', 'yarn', 'pnpm', 'python', 'pip', 'selenium', 'playwright', 'puppeteer', 'cdp'];
+  const stackKeywords = ['node', 'npm', 'yarn', 'pnpm', 'python', 'pip', 'selenium', 'chrome-devtools-mcp', 'cdp'];
   markdownFiles.forEach(filePath => {
     const normalized = normalizePath(filePath);
     if (!normalized.includes('/rules/') && !normalized.includes('/workflows/')) {

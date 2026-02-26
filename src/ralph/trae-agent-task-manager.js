@@ -11,6 +11,7 @@
  */
 
 const SCENARIO_DEFINITIONS = require('./scenarios/index');
+const { CONFIG } = require('./config');
 
 class TraeAgentTaskManager {
     constructor() {
@@ -329,8 +330,8 @@ class TraeAgentTaskManager {
             const text = el ? (el.textContent || '').trim() : '';
             if (text === '任务完成') {
                 return {
-                    type: this.TYPES.OP_REPLY,
-                    payload: '继续', // 这里的 payload 对应 config.messages.continue，实际使用时需获取配置
+                    type: 'OP_REPLY',
+                    payload: CONFIG.messages.continue, // 使用配置中的强化引导语
                     description: '任务完成确认'
                 };
             }

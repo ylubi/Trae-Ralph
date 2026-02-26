@@ -27,8 +27,8 @@ const CONFIG = {
   chatHistoryCharLimit: 4000,
   noStopMode: false,
   messages: {
-    continue: '查看 Ralph 开发进程 \n\n 继续',
-    stalled: '查看 Ralph 开发进程 \n\n 继续'
+    continue: '重新加载 rules ./trae/rules/Ralph.md。查看 Ralph 开发进程 ，继续',
+    stalled: '重新加载 rules ./trae/rules/Ralph.md。查看 Ralph 开发进程 ，继续'
   }
 };
 

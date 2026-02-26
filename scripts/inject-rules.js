@@ -11,140 +11,120 @@ if (!targetProjectDir) {
 
 // 转换为绝对路径
 const absoluteTargetDir = path.resolve(targetProjectDir);
-const templatesDir = path.resolve(__dirname, '../templates/target-project-rules');
-const rulesDir = path.join(absoluteTargetDir, '.trae/rules');
+const templatesRulesDir = path.resolve(__dirname, '../templates/rules');
+const targetRulesDir = path.join(absoluteTargetDir, '.trae/rules');
 
-console.log(`🚀 开始注入 Ralph 规则到: ${absoluteTargetDir}`);
+console.log(`🚀 开始注入 Ralph Rules 到: ${absoluteTargetDir}`);
 
 // 1. 确保 .trae/rules 目录存在
-if (!fs.existsSync(rulesDir)) {
-  fs.mkdirSync(rulesDir, { recursive: true });
+if (!fs.existsSync(targetRulesDir)) {
+  fs.mkdirSync(targetRulesDir, { recursive: true });
   console.log('✅ 创建目录: .trae/rules');
 }
 
-// 2. 复制规则文件
-const filesToCopy = ['ralph-agent-mode.md', 'ralph-task-management.md', 'ralph-planning-mode.md'];
-filesToCopy.forEach(file => {
-  const src = path.join(templatesDir, file);
-  const dest = path.join(rulesDir, file);
+// 2. 复制 Rules (如果存在模板)
+let hasRules = false;
+if (fs.existsSync(templatesRulesDir) && fs.statSync(templatesRulesDir).isDirectory()) {
+  console.log('📦 从 templates/rules 复制规则文件...');
+  const ruleFiles = fs.readdirSync(templatesRulesDir);
+  let ruleCount = 0;
   
-  if (fs.existsSync(src)) {
-    fs.copyFileSync(src, dest);
-    console.log(`✅ 已复制文件: ${file}`);
-  } else {
-    console.error(`❌ 模板文件不存在: ${src}`);
-  }
-});
-
-// 2.1 复制规划模板资产 (Assets)
-const assetsDir = path.join(absoluteTargetDir, '.trae/ralph-assets/templates');
-if (!fs.existsSync(assetsDir)) {
-  fs.mkdirSync(assetsDir, { recursive: true });
-  console.log('✅ 创建目录: .trae/ralph-assets/templates');
-}
-
-const planningTemplatesDir = path.resolve(__dirname, '../templates/planning');
-if (fs.existsSync(planningTemplatesDir)) {
-  const templateFiles = fs.readdirSync(planningTemplatesDir);
-  templateFiles.forEach(file => {
-    if (path.extname(file) === '.md') {
-      const src = path.join(planningTemplatesDir, file);
-      const dest = path.join(assetsDir, file);
-      fs.copyFileSync(src, dest);
+  ruleFiles.forEach(file => {
+    const srcFile = path.join(templatesRulesDir, file);
+    const destFile = path.join(targetRulesDir, file);
+    
+    if (fs.statSync(srcFile).isFile()) {
+        fs.copyFileSync(srcFile, destFile);
+        console.log(`   📝 安装规则: ${file}`);
+        ruleCount++;
     }
   });
-  console.log(`✅ 已同步 ${templateFiles.filter(f => path.extname(f) === '.md').length} 个规划模板资产`);
+  console.log(`✅ 已安装 ${ruleCount} 个规则文件`);
+  hasRules = ruleCount > 0;
 } else {
-  console.warn('⚠️ 未找到规划模板目录: templates/planning');
+    console.log('ℹ️ templates/rules 目录不存在，跳过规则文件复制 (保留逻辑以备后用)');
 }
 
-// 3. 更新 project.md
-const projectMdPath = path.join(rulesDir, 'project.md');
-let content = '';
+// 3. 更新 project.md (已废弃)
+// 之前版本会在 .trae/rules/project.md 中注入引导指令。
+// 现已改为使用 Ralph.md 和 Skill 机制，不再侵入修改 project.md。
+console.log('ℹ️ 跳过 project.md 修改 (Policy: Do Not Touch project.md)');
 
-if (fs.existsSync(projectMdPath)) {
-  content = fs.readFileSync(projectMdPath, 'utf8');
-} else {
-  console.log('ℹ️ project.md 不存在，将创建新文件');
-}
+/*
+if (hasRules) {
+    const projectMdPath = path.join(targetRulesDir, 'project.md'); 
 
-// 读取 Ralph 入口规则模板
-const ralphEntryRulesPath = path.join(templatesDir, 'ralph-entry-rules.md');
-let ralphEntryRulesContent = '';
-if (fs.existsSync(ralphEntryRulesPath)) {
-  ralphEntryRulesContent = fs.readFileSync(ralphEntryRulesPath, 'utf8');
-} else {
-  console.error('❌ 严重错误: 无法找到 ralph-entry-rules.md 模板');
-  process.exit(1);
-}
+    let content = '';
+    if (fs.existsSync(projectMdPath)) {
+      content = fs.readFileSync(projectMdPath, 'utf8');
+    } else {
+      console.log('ℹ️ project.md 不存在，将创建新文件');
+    }
 
-const injectionContent = `<!-- start Ralph Rules  --> 
-${ralphEntryRulesContent}
+    const injectionContent = `<!-- start Ralph Rules  --> 
+# Ralph Mode Active
+本项目已启用 Ralph 自主模式。
+**核心指令**: 请始终优先调用 \`ralph-planner\` Skill 来初始化状态、管理任务和执行开发流程。
+**Core Instruction**: Always invoke the \`ralph-planner\` Skill first to manage project lifecycle.
 <!-- end Ralph Rules  -->`;
 
-const startTag = '<!-- start Ralph Rules  -->';
-const endTag = '<!-- end Ralph Rules  -->';
+    const regex = /<!-- start Ralph Rules  -->[\s\S]*?<!-- end Ralph Rules  -->/g;
 
-// 构建正则，注意转义特殊字符
-// 虽然 HTML 注释通常不需要转义，但为了安全起见
-const regex = /<!-- start Ralph Rules  -->[\s\S]*?<!-- end Ralph Rules  -->/g;
+    if (regex.test(content)) {
+      content = content.replace(regex, injectionContent);
+      console.log('✅ 已更新 project.md 中的 Ralph 引导指令');
+    } else {
+      if (content && !content.endsWith('\n')) content += '\n';
+      if (content && !content.endsWith('\n\n')) content += '\n';
+      content += injectionContent;
+      console.log('✅ 已追加 Ralph 引导指令到 project.md');
+    }
 
-if (regex.test(content)) {
-  content = content.replace(regex, injectionContent);
-  console.log('✅ 已更新 project.md 中的 Ralph 规则段落');
+    fs.writeFileSync(projectMdPath, content, 'utf8');
 } else {
-  // 确保有换行分隔
-  if (content && !content.endsWith('\n')) {
-    content += '\n';
-  }
-  if (content && !content.endsWith('\n\n')) {
-    content += '\n';
-  }
-  content += injectionContent;
-  console.log('✅ 已追加 Ralph 规则到 project.md');
+    console.log('ℹ️ templates/rules 为空，跳过 project.md 的修改');
 }
-
-fs.writeFileSync(projectMdPath, content, 'utf8');
+*/
 
 // 4. 检查/迁移 RALPH_STATE.md
 const ralphStatePath = path.join(absoluteTargetDir, 'RALPH_STATE.md');
-const ralphStateTemplate = `# Ralph 状态指针
+// 尝试从模板加载 RALPH_STATE_TEMPLATE.md
+const ralphStateTemplatePath = path.resolve(__dirname, '../templates/skills/ralph-planner/assets/RALPH_STATE_TEMPLATE.md');
 
-## 📍 当前活跃上下文 (Active Context)
-- **迭代名称**: [Idle]
-- **规划路径**: [None]
-- **任务文件**: [None]
-- **测试文件**: [None]
-- **任务规范**: .trae/rules/ralph-task-management.md
-- **测试规范**: .trae/rules/ralph-testing-mode.md
-- **行为规范**: .trae/rules/ralph-agent-mode.md
-- **引导规范**: .trae/rules/ralph-entry-rules.md
-- **经验文件**: [None]
-- **上次更新**: ${new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().replace('T', ' ').replace('Z', '')}
-
-## 🔄 当前迭代状态 (Current Iteration Status)
-- **当前任务**: 未开始
-- **当前测试**: 未开始
-
-## 📝 全局备忘录 (Global Context)
-- 暂无 (请查看各迭代目录下的 06-learnings.md)
-`;
-
-if (fs.existsSync(ralphStatePath)) {
-  const currentContent = fs.readFileSync(ralphStatePath, 'utf8');
-  // 简单判断是否为新版格式 (检查关键标记)
-  if (!currentContent.includes('Active Context') && !currentContent.includes('当前活跃上下文')) {
-    console.log('⚠️ 检测到旧版 RALPH_STATE.md，正在迁移...');
-    const backupPath = path.join(absoluteTargetDir, 'RALPH_STATE.bak.md');
-    fs.renameSync(ralphStatePath, backupPath);
-    fs.writeFileSync(ralphStatePath, ralphStateTemplate, 'utf8');
-    console.log(`✅ 已创建新版 RALPH_STATE.md (旧版已备份为 ${path.basename(backupPath)})`);
-  } else {
-    console.log('✅ RALPH_STATE.md 格式正确');
-  }
+let ralphStateTemplate = '';
+if (fs.existsSync(ralphStateTemplatePath)) {
+    ralphStateTemplate = fs.readFileSync(ralphStateTemplatePath, 'utf8');
 } else {
-  fs.writeFileSync(ralphStatePath, ralphStateTemplate, 'utf8');
-  console.log('✅ 已初始化 RALPH_STATE.md');
+    // Fallback if template file is missing (should not happen in dev env)
+    ralphStateTemplate = `# Ralph 项目状态 (Project State)\n\n> **当前上下文 (Current Context)**: 规划阶段 (Planning)\n> **迭代名称 (Iteration)**: [此处填写实际迭代名称]\n\n(模板加载失败，请手动检查)`;
+    console.warn('⚠️ 未找到 RALPH_STATE_TEMPLATE.md，使用简易回退模板');
 }
 
-console.log('✨ 注入完成！');
+if (fs.existsSync(ralphStatePath)) {
+  // 如果文件已存在，我们尽量不覆盖用户的数据。
+  // 但如果是旧格式（包含 "Ralph 状态指针" 或 ".trae/rules"），建议升级。
+  let currentContent = fs.readFileSync(ralphStatePath, 'utf8');
+  
+  // 检查是否是旧版格式
+  const isOldFormat = currentContent.includes('Ralph 状态指针') || currentContent.includes('.trae/rules/');
+  
+  if (isOldFormat) {
+    console.log('⚠️ 检测到旧版 RALPH_STATE.md 格式，正在升级到新版模板...');
+    // 备份旧文件
+    const backupPath = ralphStatePath + '.bak';
+    fs.writeFileSync(backupPath, currentContent, 'utf8');
+    console.log(`📦 旧文件已备份为: RALPH_STATE.md.bak`);
+    
+    // 覆盖为新模板
+    fs.writeFileSync(ralphStatePath, ralphStateTemplate, 'utf8');
+    console.log('✅ 已升级 RALPH_STATE.md 为最新标准模板');
+  } else {
+    console.log('✅ RALPH_STATE.md 已存在且格式兼容，跳过覆盖');
+  }
+} else {
+  // 文件不存在，直接创建
+  fs.writeFileSync(ralphStatePath, ralphStateTemplate, 'utf8');
+  console.log('✅ 已初始化 RALPH_STATE.md (基于标准模板)');
+}
+
+console.log('✨ Rules 注入完成！');

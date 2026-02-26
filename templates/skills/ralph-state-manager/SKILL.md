@@ -5,21 +5,16 @@ description: Ralph 流程专用：任务生命周期管理与状态一致性工�
 
 # Skill: ralph-state-manager
 
-## 技能描述 (Description)
+## 📋 技能描述 (Description)
 你是 Ralph 的 **状态管理员 (State Manager)**。
 你的核心职责是管理 Task/Test 的生命周期（Start/Finish），并确保每一次变动都自动同步到 `RALPH_STATE.md`。
 
-## 核心职责 (Core Responsibilities)
-1.  **生命周期管理 (Lifecycle Management)**: 处理 `start-task`, `finish-task`, `start-test`, `finish-test` 等指令，更新 `04` 和 `05` 文件中的条目状态。
-2.  **三方审计 (Three-Way Audit)**: 检查 `04-ralph-tasks.md` (开发进度)、`05-test-plan.md` (测试进度) 与 `RALPH_STATE.md` (全局状态) 是否一致。
-3.  **强制同步 (Force Sync)**: 以 `04` 和 `05` 文件的实际内容为“唯一事实来源 (Single Source of Truth)”，强制覆盖 `RALPH_STATE.md` 中的记录。
-
-## 触发条件 (Trigger)
+## 使用场景 (Usage)
 - 用户指令: "开始任务", "完成测试", "同步状态", "Sync State".
 - 系统指令: 在 `ralph-web-routine` 的 **Step 5 (Handover)** 阶段被自动推荐调用。
 - **任务执行**: 每次需要更新任务或测试状态时，**必须**调用此 Skill，而非手动编辑文件。
 
-## 执行流程 (Execution Protocol)
+## 指令 (Instructions)
 
 ### 1. 任务操作 (Task Operations)
 针对 `04-ralph-tasks.md` 中的开发任务：
@@ -50,12 +45,32 @@ description: Ralph 流程专用：任务生命周期管理与状态一致性工�
 
 ### 3. 审计与修复 (Audit & Sync)
 当被要求检查状态或发现不一致时：
-
 1.  **Audit**: 读取 `04` 和 `05` 文件，统计实际进度。
 2.  **Report**: 对比 `RALPH_STATE.md`，输出差异报告。
 3.  **Sync**: 强制以 `04`/`05` 为准，更新 `RALPH_STATE.md`。
 
-## 防幻觉铁律 (Anti-Hallucination Iron Rules)
+## 示例 (Examples)
+
+### 示例 1：开始任务
+**Input**:
+> 用户：Start Task 1.1
+
+**Output**:
+> ✅ **Task 1.1 Started**
+> - Status: `[~]` In Progress
+> - Context: Updated `RALPH_STATE.md` (Progress: 0/112)
+
+### 示例 2：完成测试
+**Input**:
+> 用户：Finish Test TC-AUTH-HP-001
+
+**Output**:
+> ✅ **Test Case Completed: [TC-AUTH-HP-001]**
+> - Result: Pass
+> - Updated `05-test-plan.md`
+> - Synced `RALPH_STATE.md` (Test Coverage: 1/78)
+
+## 🛡️ 铁律与约束 (Iron Rules & Constraints)
 1.  **单一事实来源**: `04` 和 `05` 文件是绝对真理。`RALPH_STATE.md` 只是基于真理计算出的投影。
 2.  **禁止手动同步**: 严禁 Agent 试图手动分别编辑三个文件来同步状态。必须调用此 Skill (或遵循本 Skill 的逻辑) 进行原子更新。
 3.  **严禁伪造**: 只有当任务真正完成（代码已写完/测试已通过）时，才允许调用 `finish-*` 指令。
@@ -72,7 +87,7 @@ description: Ralph 流程专用：任务生命周期管理与状态一致性工�
     -   **严禁** 使用“基础测试通过”、“部分完成”、“大概完成了”等模糊定性描述。
     -   任何非数字格式的进度描述都将被视为 **INVALID**，必须立即重新计算并修正。
 
-## 常用指令 (Commands)
-- `audit`: 仅检查，不修改。
-- `sync`: 检查并强制修复 `RALPH_STATE.md`。
-- `done <task_id>`: 完成特定任务并自动同步。
+## 📂 关联资产 (Related Assets)
+- `RALPH_STATE.md` (Target for sync)
+- `04-ralph-tasks.md` (Source of truth)
+- `05-test-plan.md` (Source of truth)
