@@ -31,7 +31,7 @@ const { findElement } = require('./utils');
  */
 function isBlockingError() {
   // 1. 检查系统级错误 (仅限最后一条消息)
-  const lastTurn = getLastAssistantReplyElement() || getLastAssistantTurnElement();
+  const lastTurn = getLastAssistantTurnElement();
   if (lastTurn) {
       const sysError = lastTurn.querySelector('.agent-error-wrap .icube-alert-msg');
       if (sysError && (sysError.textContent || '').includes('系统未知错误')) {
@@ -58,11 +58,21 @@ function isAIWorking() {
   const isChatIdleState = () => {
     const container = document.querySelector('.chat-input-v2-container');
     if (container && container.classList.contains('chat-input-v2-container--empty')) return true;
+    
     const placeholder = document.querySelector('.chat-input-v2-placeholder');
     if (placeholder) {
       const cs = getComputedStyle(placeholder);
       if (cs.display !== 'none' && cs.visibility !== 'hidden' && cs.opacity !== '0') return true;
     }
+    
+    // 增加对 disabled 发送按钮的检查，如果按钮是 disabled 且内容为空，则认为是 Idle
+    const sendBtn = document.querySelector('.chat-input-v2-send-button.disabled');
+    if (sendBtn) {
+        // 进一步确认输入框是否真的为空
+        const input = findChatInput();
+        if (input && !input.textContent.trim()) return true;
+    }
+    
     return false;
   };
   // 1. 使用 $trae 检查 (优先于 DOM 阻断检查，以避免在 AI 响应后（loading=true）仍被旧 DOM 误导)
@@ -117,13 +127,17 @@ function isAIWorking() {
       '.icube-alert-title', 
       '.icube-alert-msg',
       '.latest-assistant-bar',
-      '.agent-error-wrap'
+      '.agent-error-wrap',
+      '.icube-component-alert' // 新增: 适配最新的排队提醒结构
   ], true) || []; // 确保返回数组，避免 null 导致 TypeError
 
   for (const el of queueAlerts) {
       const text = (el.textContent || '').trim();
-      if (text.includes('排队') && text.includes('请求量较高')) {
-           console.log('⏳ [Global] 检测到排队提醒，视为 AI 忙碌中...');
+      // 只要包含"排队"或者"请求量较高"，就视为 AI 忙碌中
+      // 移除对 loading 动画的依赖，因为排队时可能没有动画
+      if ((text.includes('排队') || text.includes('queue')) && 
+          (text.includes('请求量较高') || text.includes('第') || text.includes('位'))) {
+           console.log('⏳ [Global] 检测到排队提醒，视为 AI 忙碌中 (Blocking backups)...');
            return true;
       }
   }
@@ -155,13 +169,8 @@ function isAIWorking() {
   if (loading) {
     const text = loading.textContent || '';
     
-    // 检查是否为“排队中” (Queue Up)
-    // 这种情况下，虽然有 loading 或相关提示，但我们应该视为 AI 正在忙碌（在排队），
-    // 从而阻止 monitorBackups 触发保底操作。
-    if (text.includes('排队') || text.includes('queue') || text.includes('请求量较高')) {
-        console.log('⏳ 检测到排队提醒，视为 AI 忙碌中 (Blocking backups)...');
-        return true;
-    }
+    // 移除这里冗余的排队检查，因为已经在上方全局检查过了
+    // ...
 
     // 如果是 "正在等待你的操作" 或 "命令运行中"，则不视为忙碌 (这是需要交互或监控的状态)
           if (text.includes('正在等待你的操作') || 

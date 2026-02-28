@@ -25,5 +25,26 @@ module.exports = [
             // return hasContinueText && hasButton && !isCopy;
             return hasContinueText && hasButton;
         }
+    },
+    {
+        id: 'click_service_exception_retry',
+        type: 'OP_CLICK',
+        name: '服务端异常重试',
+        description: '识别“服务端异常”并点击“重试”按钮',
+        match: (el, text) => {
+            // 匹配条件：
+            // 1. 文本包含 "服务端异常" 或 "请稍后重试"
+            // 2. 存在按钮，且按钮文本为 "重试" 或包含 icube-alert-button-action 类
+            const isException = text.includes('服务端异常') || text.includes('请稍后重试');
+            if (!isException) return false;
+            
+            const buttons = Array.from(el.querySelectorAll('button'));
+            const hasRetryBtn = buttons.some(btn => {
+                const btnText = (btn.textContent || '').trim();
+                return btnText === '重试' || btn.classList.contains('icube-alert-button-action');
+            });
+            
+            return hasRetryBtn;
+        }
     }
 ];

@@ -160,25 +160,43 @@ function triggerSendAction(message) {
     }
 
     const button = findSendButton();
+    // 即使按钮被禁用 (disabled)，如果是因为内容为空导致的，
+    // 我们在 fillContentEditable 后应该等待 UI 更新状态。
+    // 如果 UI 更新慢，按钮可能还是 disabled。
+    // 策略：优先尝试点击，如果不行（或者真的 disabled），尝试回车。
+    // 注意：Trae 的发送按钮在输入内容后通常会启用。如果它还是 disabled，可能是 UI 没刷新。
+    // 强制移除 disabled 属性尝试点击可能无效（事件未绑定）。
+    // 所以回车是比较稳妥的 fallback。
+    
     if (button && !button.disabled && !button.classList.contains('disabled')) {
         button.click();
         console.log('✓ 通过按钮发送消息:', message);
-        if (typeof lastActionAt !== 'undefined') lastActionAt = Date.now();
     } else {
+        console.warn('⚠️ 发送按钮不可用 (disabled)，尝试通过回车发送...');
         const input = findChatInput();
         if (input) {
-            const enterEvent = new KeyboardEvent('keydown', {
+            input.focus();
+            
+            // 模拟完整的 Enter 键按下过程
+            const eventProps = {
                 key: 'Enter',
                 code: 'Enter',
                 keyCode: 13,
+                which: 13,
                 bubbles: true,
-                cancelable: true
-            });
-            input.dispatchEvent(enterEvent);
-            console.log('✓ 按钮不可用，尝试通过回车发送:', message);
-            if (typeof lastActionAt !== 'undefined') lastActionAt = Date.now();
+                cancelable: true,
+                view: window
+            };
+            
+            input.dispatchEvent(new KeyboardEvent('keydown', eventProps));
+            input.dispatchEvent(new KeyboardEvent('keypress', eventProps));
+            input.dispatchEvent(new KeyboardEvent('keyup', eventProps));
+            
+            console.log('✓ 已触发回车事件发送消息:', message);
         }
     }
+    
+    if (typeof lastActionAt !== 'undefined') lastActionAt = Date.now();
 }
 
 /**

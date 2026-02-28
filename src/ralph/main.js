@@ -388,8 +388,12 @@ function handlePendingTask(task) {
             const targetBtn = el.querySelector('.icd-btn-primary') || 
                             el.querySelector('.icd-run-command-card-v2-actions-btn-run') ||
                             el.querySelector('.icube-alert-action') ||
+                            el.querySelector('.icube-alert-button-action') || // 新增: 适配服务端异常重试按钮
                             el.querySelector('.icd-btn-tertiary') || // 跳过按钮 (v2-cwd)
-                            Array.from(el.querySelectorAll('button')).find(b => (b.textContent || '').trim() === '跳过') ||
+                            Array.from(el.querySelectorAll('button')).find(b => {
+                                const txt = (b.textContent || '').trim();
+                                return txt === '跳过' || txt === '重试';
+                            }) ||
                             el.querySelector('button');
             
             if (targetBtn) {
@@ -447,8 +451,11 @@ function monitorBackups() {
     // 1. 发送按钮禁用继续 (sendButtonDisabledContinue)
     // 如果发送按钮被禁用，且不是因为 AI 正在生成，且 Ralph 正在运行
     // 尝试发送 "继续" 以激活状态 (利用 triggerSendAction 的回车降级策略)
-    const sendButton = document.querySelector('.chat-input-v2__actions-btn-send');
-    const isSendDisabled = sendButton && sendButton.disabled;
+    // 更新选择器以匹配 .chat-input-v2-send-button
+    const sendButton = document.querySelector('.chat-input-v2__actions-btn-send') || 
+                       document.querySelector('.chat-input-v2-send-button') ||
+                       document.querySelector('.chat-input-v2-send-button.disabled'); // 显式匹配 disabled 类
+    const isSendDisabled = sendButton && (sendButton.disabled || sendButton.classList.contains('disabled'));
     
     if (isSendDisabled && !isAIWorking() && testInterval) {
         console.log('⚠️ 检测到发送按钮禁用但 Ralph 已开启，尝试强制发送继续...');

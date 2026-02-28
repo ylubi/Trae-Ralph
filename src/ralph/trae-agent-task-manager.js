@@ -93,20 +93,22 @@ class TraeAgentTaskManager {
                          task.selectors = {
                              primaryBtn: !!el.querySelector('.icd-btn-primary'),
                              runBtn: !!el.querySelector('.icd-run-command-card-v2-actions-btn-run'),
-                             alertAction: !!el.querySelector('.icube-alert-action')
+                             alertAction: !!el.querySelector('.icube-alert-action'),
+                             retryBtn: !!el.querySelector('.icube-alert-button-action')
                          };
                      }
                 }
 
-                // 检查2：对于已处理的终端任务，如果出现了操作按钮（运行或跳过），重置为 PENDING
+                // 检查2：对于已处理的终端任务或点击任务，如果出现了操作按钮（运行、跳过、重试），重置为 PENDING
                 // 这能解决初始渲染时无按钮被误判为 HANDLED，随后按钮加载出来的情况
-                if (task.status === this.STATUS.HANDLED && task.type === this.TYPES.OP_TERMINAL) {
+                if (task.status === this.STATUS.HANDLED && (task.type === this.TYPES.OP_TERMINAL || task.type === this.TYPES.OP_CLICK)) {
                      const hasActionBtn = el.querySelector('.icd-btn-tertiary') || 
                                           el.querySelector('.icd-btn-primary') ||
                                           el.querySelector('.icd-run-command-card-v2-actions-btn-run') ||
+                                          el.querySelector('.icube-alert-button-action') ||
                                           Array.from(el.querySelectorAll('button')).some(b => {
                                               const txt = (b.textContent || '').trim();
-                                              return txt === '跳过' || txt === 'Skip';
+                                              return txt === '跳过' || txt === 'Skip' || txt === '重试';
                                           });
                                           
                      if (hasActionBtn) {
@@ -196,7 +198,8 @@ class TraeAgentTaskManager {
         // 检查按钮是否存在
         const hasButton = !!(el.querySelector('.icd-btn-primary') || 
                            el.querySelector('.icd-run-command-card-v2-actions-btn-run') ||
-                           el.querySelector('.icube-alert-action'));
+                           el.querySelector('.icube-alert-action') ||
+                           el.querySelector('.icube-alert-button-action'));
 
         if (!hasButton) {
             console.log(`✅ 任务 ${id} 验证成功: 按钮已消失`);
@@ -234,6 +237,7 @@ class TraeAgentTaskManager {
             const hasButton = !!(element.querySelector('.icd-btn-primary') || 
                                element.querySelector('.icd-run-command-card-v2-actions-btn-run') ||
                                element.querySelector('.icube-alert-action') ||
+                               element.querySelector('.icube-alert-button-action') ||
                                element.querySelector('.icd-btn-tertiary') || // 跳过
                                Array.from(element.querySelectorAll('button')).some(b => (b.textContent || '').trim() === '跳过'));
             
@@ -252,7 +256,8 @@ class TraeAgentTaskManager {
             selectors: {
                 primaryBtn: !!element.querySelector('.icd-btn-primary'),
                 runBtn: !!element.querySelector('.icd-run-command-card-v2-actions-btn-run'),
-                alertAction: !!element.querySelector('.icube-alert-action')
+                alertAction: !!element.querySelector('.icube-alert-action'),
+                retryBtn: !!element.querySelector('.icube-alert-button-action') // 新增: 服务端异常重试按钮
             }
         };
 
