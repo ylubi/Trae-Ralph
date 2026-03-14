@@ -33,7 +33,7 @@ AI 指令:
 > **⚠️ 执行铁律**: 必须严格按照 `05-test-plan.md` 中的列表顺序执行测试。**严禁跳跃**或乱序执行。
 
 - **状态**: ⏳ 待定 (Pending)
-- **进度**: 0 / 0 测试通过
+- **进度**: 0 / 0 测试通过（严禁没有修改 05-test-plan.md 测试状态就修改这里）
 - **引用**: `docs/planning/[Iteration]/05-test-plan.md`
 
 ## 4. 项目交付 (Project Delivery)

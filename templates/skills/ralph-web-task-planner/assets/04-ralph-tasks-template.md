@@ -37,7 +37,7 @@ AI 指令:
     - **编写数据层单元测试**
 - [ ] **2.1.2 接口层实现**
     - 实现 API 端点
-    - **编写 API 集成测试**
+    - **编写 API 单元测试**
 - [ ] **2.1.3 UI 层实现**
     - 开发组件 A
     - 开发页面 B
@@ -46,13 +46,6 @@ AI 指令:
 
 ### 2.2 [功能模块 B]
 - [ ] ...
-
-## Phase 3: 质量保障 (Quality Assurance)
-- [ ] **3.1 最终验收 (Final Acceptance)**
-    - **强制**: 启动 `ralph-test-executor` Skill
-    - 按顺序执行 `05-test-plan.md` 中的所有测试项
-    - 确保 `05-test-plan.md` 全部标记为 `[x]`
-    - 更新 `RALPH_STATE.md` 状态为 `Current Test: Completed`
 
 <!-- 
 注意: 
