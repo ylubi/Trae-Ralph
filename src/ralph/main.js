@@ -35,6 +35,12 @@ const {
     resetContextAndContinue
 } = require('./actions');
 const taskManager = require('./trae-agent-task-manager');
+const __baseConsole = globalThis.console;
+const console = {
+    log: (...args) => __baseConsole.log('[trae-ralph]', ...args),
+    warn: (...args) => __baseConsole.warn('[trae-ralph]', ...args),
+    error: (...args) => __baseConsole.error('[trae-ralph]', ...args)
+};
 if (!taskManager) {
     console.error('❌ FATAL: TraeAgentTaskManager failed to load!');
 } else {

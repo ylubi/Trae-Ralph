@@ -130,21 +130,24 @@ const colors = {
     red: '\x1b[31m',
     yellow: '\x1b[33m',
     blue: '\x1b[34m',
-    cyan: '\x1b[36m'
+    cyan: '\x1b[36m',
+    magenta: '\x1b[35m'
 };
 
+const LOG_PREFIX = '[trae-ralph]';
+
 function log(message, color = 'reset') {
-    console.log(`${colors[color]}${message}${colors.reset}`);
+    console.log(`${colors[color]}${LOG_PREFIX} ${message}${colors.reset}`);
 }
 
 async function injectScript() {
     log('🚀 Trae Ralph Loop CDP 注入器', 'cyan');
     log('');
     
-    // 解析命令行参数
     const args = process.argv.slice(2);
     let targetVersion = null;
     let noStopMode = false;
+    let explicitPort = null;
     
     for (let i = 0; i < args.length; i++) {
         if (args[i] === '--version' && args[i + 1]) {
@@ -154,12 +157,18 @@ async function injectScript() {
         if (args[i] === '--nostop') {
             noStopMode = true;
         }
+        if (args[i] === '--port' && args[i + 1]) {
+            const p = Number(args[i + 1]);
+            if (Number.isInteger(p) && p > 0 && p < 65536) {
+                explicitPort = p;
+            }
+            i++;
+        }
     }
     
     const traeConfig = getTraeConfig(targetVersion);
     
-    // 更新全局配置
-    CONFIG.port = traeConfig.port;
+    CONFIG.port = explicitPort || traeConfig.port;
     CONFIG.traePath = traeConfig.path;
     CONFIG.checkInterval = traeConfig.checkInterval;
     CONFIG.stableCount = traeConfig.stableCount;
@@ -170,23 +179,42 @@ async function injectScript() {
     if (noStopMode) {
         log(`📍 模式: NoStop (忽略完成信号)`, 'magenta');
     }
-    log(`📍 调试端口: ${traeConfig.port}`, 'blue');
+    log(`📍 调试端口: ${CONFIG.port}`, 'blue');
     log('');
     
     try {
-        // 连接到 Trae
-        log(`📡 连接到 Trae (${CONFIG.host}:${CONFIG.port})...`, 'blue');
-        const client = await CDP({ 
-            port: CONFIG.port,
-            host: CONFIG.host
-        });
+        let targetPort = CONFIG.port;
+        let client = null;
+
+        if (explicitPort) {
+            log(`📡 连接到 Trae (${CONFIG.host}:${targetPort})...`, 'blue');
+            client = await CDP({ port: targetPort, host: CONFIG.host });
+        } else {
+            const candidates = [CONFIG.port];
+            for (let i = 1; i <= 20; i++) {
+                candidates.push(CONFIG.port + i);
+            }
+            for (const port of candidates) {
+                try {
+                    client = await CDP({ port, host: CONFIG.host });
+                    targetPort = port;
+                    break;
+                } catch (error) {
+                }
+            }
+            if (!client) {
+                throw new Error(`无法连接到可用 CDP 端口，起始端口: ${CONFIG.port}`);
+            }
+            if (targetPort !== CONFIG.port) {
+                log(`📍 自动切换端口: ${targetPort}`, 'yellow');
+            }
+        }
         
-        const { Page, Runtime, Network } = client;
+        const { Runtime, Network, Page } = client;
         
-        // 启用必要的域
-        await Page.enable();
         await Runtime.enable();
         await Network.enable();
+        await Page.enable();
         
         log('✅ 已连接到 Trae', 'green');
         log('');
@@ -206,20 +234,124 @@ async function injectScript() {
             noStopMode: CONFIG.noStopMode
         });
         
-        // 注入 Ralph Loop
         log('💉 正在注入 Ralph Loop...', 'blue');
-        const result = await Runtime.evaluate({
-            expression: ralphLoopScript,
-            returnByValue: true
-        });
-        
-        if (result.exceptionDetails) {
-            log('❌ 注入失败:', 'red');
-            console.error(result.exceptionDetails);
-            process.exit(1);
+
+        const wrappedScript = `
+            (function() {
+                const __RLOG = (...args) => console.log('[trae-ralph]', ...args);
+                try {
+                    __RLOG('🧩 注入脚本执行');
+                } catch (e) {
+                }
+                if (window.__TRAE_RALPH_LOOP_INJECTED__) {
+                    __RLOG('⚠️ Trae Ralph Loop 已注入，跳过');
+                    if (typeof window.waitForRalphToggleButton === 'function') {
+                        window.waitForRalphToggleButton();
+                    } else if (typeof window.ensureRalphToggleButton === 'function') {
+                        window.ensureRalphToggleButton();
+                    }
+                    return;
+                }
+                window.__TRAE_RALPH_LOOP_INJECTED__ = true;
+                __RLOG('🚀 Trae Ralph Loop 已自动启动');
+                ${ralphLoopScript}
+                if (typeof window.waitForRalphToggleButton === 'function') {
+                    window.waitForRalphToggleButton();
+                } else if (typeof window.ensureRalphToggleButton === 'function') {
+                    window.ensureRalphToggleButton();
+                }
+            })();
+        `;
+
+        let injectedCount = 0;
+        const targets = await CDP.List({ host: CONFIG.host, port: targetPort });
+        const pageTargets = targets.filter(t => t.type === 'page');
+        const shouldInjectTarget = (targetInfo) => {
+            if (!targetInfo || targetInfo.type !== 'page') {
+                return false;
+            }
+            const url = String(targetInfo.url || '').toLowerCase();
+            if (!url) {
+                return false;
+            }
+            if (url.startsWith('devtools://') || url.startsWith('chrome-devtools://') || url.includes('devtools/bundled')) {
+                return false;
+            }
+            return url.includes('workbench/workbench.html') || url.includes('workbench.html') || url.startsWith('vscode-file://vscode-app/');
+        };
+        const runnableTargets = pageTargets.filter(shouldInjectTarget);
+
+        for (const target of runnableTargets) {
+            let targetClient = null;
+            try {
+                targetClient = await CDP({
+                    host: CONFIG.host,
+                    port: targetPort,
+                    target: target.id
+                });
+                const { Runtime: targetRuntime } = targetClient;
+                const { Page: targetPage } = targetClient;
+                await targetRuntime.enable();
+                await targetPage.enable();
+                await targetPage.addScriptToEvaluateOnNewDocument({
+                    source: wrappedScript
+                });
+                const probe = await targetRuntime.evaluate({
+                    expression: 'Boolean(window.__TRAE_RALPH_LOOP_INJECTED__)',
+                    returnByValue: true
+                });
+                const alreadyInjected = !!(probe && probe.result && probe.result.value === true);
+                if (alreadyInjected) {
+                    await targetRuntime.evaluate({
+                        expression: `
+                            (function() {
+                                if (typeof window.waitForRalphToggleButton === 'function') {
+                                    window.waitForRalphToggleButton();
+                                    return;
+                                }
+                                if (typeof window.ensureRalphToggleButton === 'function') {
+                                    window.ensureRalphToggleButton();
+                                }
+                            })();
+                        `,
+                        returnByValue: true
+                    });
+                    continue;
+                }
+                const result = await targetRuntime.evaluate({
+                    expression: wrappedScript,
+                    returnByValue: true
+                });
+                if (!result.exceptionDetails) {
+                    injectedCount++;
+                }
+            } catch (error) {
+            } finally {
+                if (targetClient) {
+                    await targetClient.close();
+                }
+            }
+        }
+
+        if (injectedCount === 0) {
+            await Page.addScriptToEvaluateOnNewDocument({
+                source: wrappedScript
+            });
+            const result = await Runtime.evaluate({
+                expression: wrappedScript,
+                returnByValue: true
+            });
+            if (!result.exceptionDetails) {
+                injectedCount = 1;
+            }
+        }
+
+        if (injectedCount === 0) {
+            throw new Error('未找到可注入窗口');
         }
         
         log('✅ 脚本注入成功！', 'green');
+        log(`✅ 注入窗口数: ${injectedCount}`, 'green');
         log('');
         log('🎉 Trae Ralph Loop 已启动', 'cyan');
         log('');

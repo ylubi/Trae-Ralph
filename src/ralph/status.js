@@ -24,6 +24,12 @@ const {
   findChatInput 
 } = require('./dom');
 const { findElement } = require('./utils');
+const __baseConsole = globalThis.console;
+const console = {
+  log: (...args) => __baseConsole.log('[trae-ralph]', ...args),
+  warn: (...args) => __baseConsole.warn('[trae-ralph]', ...args),
+  error: (...args) => __baseConsole.error('[trae-ralph]', ...args)
+};
 
 /**
  * 检查是否存在阻断性错误（如模型限制、系统错误等）

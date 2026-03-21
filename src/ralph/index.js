@@ -19,6 +19,12 @@
 const { CONFIG } = require('./config');
 const { startLoop, stopLoop } = require('./main');
 const { addToggleButton, exposeDebugTools } = require('./debug');
+const __baseConsole = globalThis.console;
+const console = {
+  log: (...args) => __baseConsole.log('[trae-ralph]', ...args),
+  warn: (...args) => __baseConsole.warn('[trae-ralph]', ...args),
+  error: (...args) => __baseConsole.error('[trae-ralph]', ...args)
+};
 
 // 自动启动
 (function() {

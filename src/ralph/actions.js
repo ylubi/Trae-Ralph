@@ -22,6 +22,12 @@ const {
   getLastAssistantReplyElement 
 } = require('./dom');
 const { CONFIG } = require('./config');
+const __baseConsole = globalThis.console;
+const console = {
+  log: (...args) => __baseConsole.log('[trae-ralph]', ...args),
+  warn: (...args) => __baseConsole.warn('[trae-ralph]', ...args),
+  error: (...args) => __baseConsole.error('[trae-ralph]', ...args)
+};
 
 /**
  * 点击停止按钮

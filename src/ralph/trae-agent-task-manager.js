@@ -12,6 +12,12 @@
 
 const SCENARIO_DEFINITIONS = require('./scenarios/index');
 const { CONFIG } = require('./config');
+const __baseConsole = globalThis.console;
+const console = {
+    log: (...args) => __baseConsole.log('[trae-ralph]', ...args),
+    warn: (...args) => __baseConsole.warn('[trae-ralph]', ...args),
+    error: (...args) => __baseConsole.error('[trae-ralph]', ...args)
+};
 
 class TraeAgentTaskManager {
     constructor() {
